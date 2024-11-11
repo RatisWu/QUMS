@@ -1,8 +1,9 @@
 import sys, os, time, tomli
-from Modularize.support.QDmanager import QDmanager
-from .FBI import  user_dep_config_folder
-data_folder = "C:\ExpData"
+# from qblox.support.QDmanager import QDmanager
 
+user_dep_config_folder = os.path.join(os.path.expanduser("~"),"MeasConfigs") # should all ways one file which name as "S?_ExpParasSurvey.toml"
+data_folder = os.path.join(os.path.abspath(os.sep),"ExpData")
+machine_IP_table = r"C:\ExpMachineIP\MachineIP_rec.toml"
 class Maid():
     """ Connected to Conductor.Coordinator, it's responsible for build up some folders like Data-saving, """
     def __init__(self, exp_paras:dict, sample_register:bool=False):
@@ -39,9 +40,7 @@ class Maid():
         sample_info = self.__getSampleInfo__(sample_folder_path)
         Qmanager = QDmanager(user_dep_config_folder)
         # Check HCFG is in the config folder 
-        
-        if 
-        hcfg = 
+         
         Qmanager.build_new_QD(int(sample_info['how_many_qubits']),int(sample_info['how_many_couplers']),cfg,sample_info['Instrument_IP'],sample_info['cool_down_dr'],chip_name=sample_info['sample_name'],chip_type=sample_info['chip_type'])
         Qmanager.refresh_log("new-born!")
 

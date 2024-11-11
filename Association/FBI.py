@@ -1,13 +1,13 @@
 import os, sys, time, inspect, tomli
-from Association.Soul import Exp_Encyclopedia
-from Modularize.Association.Housekeeper import Maid
+from Soul import Exp_Encyclopedia
+from Housekeeper import Maid
 from numpy import linspace, arange, ndarray
 from types import FunctionType
 from functools import partial
+print(os.getcwd())
+root_path = os.path.expanduser("~")
+print(root_path)
 
-user = os.getlogin()
-user_dep_config_folder = rf"C:/Users/{user}/MeasConfigs" # should all ways one file which name as "S?_ExpParasSurvey.toml"
-machine_IP_table = r"C:\ExpMachineIP\MachineIP_rec.toml"
 
 def owned_attribute(obj, attr):
     return hasattr(obj, attr) and attr in obj.__dict__

@@ -1,7 +1,7 @@
 import os, tomli
-from Association.Soul import Exp_Encyclopedia
-from Modularize.Association.Housekeeper import Maid
-from Modularize.Association.FBI import Canvasser
+from Soul import Exp_Encyclopedia
+from Housekeeper import Maid
+from FBI import Canvasser
 
 
 class Coordinator(Exp_Encyclopedia):
