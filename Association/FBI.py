@@ -1,5 +1,5 @@
 import os, sys, time, inspect, tomli
-from Soul import Exp_Encyclopedia
+from ExclusiveNames import *
 from Housekeeper import Maid, user_dep_config_folder, machine_IP_table
 from numpy import linspace, arange, ndarray
 from types import FunctionType
@@ -24,6 +24,23 @@ class Canvasser():
             case _:
                 raise ValueError("Check your assigned paras in the toml, the list type para shoud be given in length = 1 or 3.")
 
+    def __CoordsDecode__(self,coordsProtocol:dict,joint_qbs:list,function:callable=None,**kwargs):
+        result = {}
+        layer_2_configs = coordsProtocol["2F"]
+    
+        for qb in joint_qbs:
+            result[qb] = {}
+
+            for config in layer_2_configs:
+                field_name = config["name"]
+                variable_name = config["value"]
+
+                if variable_name in kwargs:
+                    result[qb][field_name] = kwargs[variable_name][qb] if type(kwargs[variable_name][qb]) != list else function(kwargs[variable_name][qb])
+                else:
+                    raise KeyError(f"Missing the variable {variable_name} for layer '2F' in kwargs !")
+            
+        return result  
         
     def __generate_ExpParas_servey__(self):
         self.brain = Exp_Encyclopedia(self.exp_type)
@@ -32,7 +49,7 @@ class Canvasser():
         exclude_attrs = []
         attributes = [attr for attr in attributes if attr not in exclude_attrs]
         # Open a file to write the toml content
-        self.file_path=f"{self.exp_type}_{self.brain.__SurveyUniqueName__}.toml"
+        self.file_path=f"{self.exp_type}_{SurveyUniqueName}.toml"
         with open(self.file_path, "w") as file:
             # For each target (q0 and q1), create a section with the same attributes
             file.write("# Please avoid the space between your world, you can use '_' replace it if it's necessary.\n")
@@ -133,7 +150,7 @@ class Canvasser():
 
                         kwargs_dict[attr][q] = self.assigned_paras[q][attr]
                 sampler = partial(self.__listTypePara_decoder__, generate_samples_function =sampling_func)
-                ro_elements = self.brain.__CoordsDecode__(self.brain.__ro_elements_coords__,joint_qubits,sampler,**kwargs_dict)
+                ro_elements = self.__CoordsDecode__(self.brain.__ro_elements_coords__,joint_qubits,sampler,**kwargs_dict)
             case "qm":
                 pass
 
