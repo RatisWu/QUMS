@@ -1,9 +1,10 @@
 import sys, os, time, tomli
-# from qblox.support.QDmanager import QDmanager
+from qblox.support.QDmanager import QDmanager
 
 user_dep_config_folder = os.path.join(os.path.expanduser("~"),"MeasConfigs") # should all ways one file which name as "S?_ExpParasSurvey.toml"
 data_folder = os.path.join(os.path.abspath(os.sep),"ExpData")
-machine_IP_table = r"C:\ExpMachineIP\MachineIP_rec.toml"
+machine_IP_table = os.path.join(os.path.abspath(os.sep),"ExpMachineIP","MachineIP_rec.toml")
+
 class Maid():
     """ Connected to Conductor.Coordinator, it's responsible for build up some folders like Data-saving, """
     def __init__(self, exp_paras:dict, sample_register:bool=False):

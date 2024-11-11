@@ -1,13 +1,9 @@
 import os, sys, time, inspect, tomli
 from Soul import Exp_Encyclopedia
-from Housekeeper import Maid
+from Housekeeper import Maid, user_dep_config_folder, machine_IP_table
 from numpy import linspace, arange, ndarray
 from types import FunctionType
 from functools import partial
-print(os.getcwd())
-root_path = os.path.expanduser("~")
-print(root_path)
-
 
 def owned_attribute(obj, attr):
     return hasattr(obj, attr) and attr in obj.__dict__
