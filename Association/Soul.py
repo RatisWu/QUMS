@@ -3,8 +3,7 @@ from types import FunctionType
 from abc import abstractmethod
 import inspect
 
-def empty_func():FunctionType
-
+# Exp framework
 class ExpSpirit():
     def __init__(self):
         pass
@@ -14,17 +13,7 @@ class ExpSpirit():
         pass
     
     @abstractmethod
-    def set_SurveyDecodeProtocol(self,*args):
-        """ name attributes end with '_protocol' like `self.ROelements_protocol` """
-        pass
-
-    @abstractmethod
-    def set_qubitUnique_variables(self,*args):
-        pass
-    
-    @abstractmethod
-    def set_qubitShared_variables(self,*args):
-        """ name attributes start and end with '_' like `self._avg_n_` """
+    def set_variables(self,*args):
         pass
 
     @abstractmethod
@@ -35,67 +24,54 @@ class ExpSpirit():
     def set_analysis(self,*args):
         pass
 
+# Exp parameter type
+class ExpParas():
+    def __init__(self,name:str,custom_type:str,uniqueness:int=1):
+        """
+        Level your exp parameters. Because in your measurement the exp parameters have different works, some are shared with every qubits, 
+        another are exp variables but keep same between different qubits, the other are exactly unique for qubit.
 
-
-
-class S0_MeasInit():
-    def __init__(self):
-        self.Instrument_IP:str = "" 
-        self.how_many_couplers:int = 0
-        self.how_many_qubits:int = 0
-        self.cool_down_date:str = ""
-        self.cool_down_dr:str = ""
-        self.sample_name:str = ""
-        self.chip_type:str = ""
-
-
-class S1_CS(ExpSpirit):
-    def __init__(self):
-        super().__init__()
-
-
-    def set_qubitUnique_variables(self):
-        self.freq_range = list([])
+        ### Parameters:
+        - name (`str`): The name of this parameter, will be shown on ExpParasSurvey.
+        - uniqueness (`int`): Specifying how unique is this parameter for the qubits.\n
+         - uniqueness = 1 (common), for the parameter which is (1) **NOT** a exp-variable and (2) keeps the same for all qubits in this measurement, Ex. `avg_n`\n 
+         - uniqueness = 2 (middle), for the parameter which is (1) a exp-variable and (2) keeps the same for all qubits in this measurement, Ex. `bias` when FluxCavity \n 
+         - uniqueness = 3 (unique), for the parameter which is (1) a exp-variable and (2) **totally different** for all qubits in this measurement, Ex. `freq` when FluxCavity \n
+        - custom_type (`str`): Makes user know what type to fill into the questions for ExpParasSurvey, common python type like [str, int, list, function, ...] is supported.
         
-    def set_SurveyDecodeProtocol(self):
-        # This part will be replace by a function built in parent
-        self.ro_elements_protocol:dict = {"layer":2,"1F":{"name":"joint_qbs","value":"2F"},"2F":[{"name":"freq_samples","value":"freq_range"}]} # The value in "2F" shoud exist in the ExpParasSurvey.toml 
+        ### Attributes:
+            1. self.uniqueness, return the uniqueness of it.
+            2. self.value, return the name of it. 
+            3. self.readable, helps program know where the PulseSchedule needs it, **Only** for uniqueness= 2 or 3 parameters.
+                -- for those which can be translated to readable it should includes the following keywords: ["freq", "power", "bias", "z_amp", "time"].
+        
+        ### Raises:
+        - **ValueError**: If uniqueness is higher than 3. 
+        """
 
-    def set_qubitShared_variables(self):
-        self._machine_IP_:str = ""
-        self._avg_n_:int = 0
-        self._list_sampling_func_:FunctionType = empty_func
-
-    def provide_ExpSurveyInfo(self):
-        self.set_qubitShared_variables()
-        self.set_qubitUnique_variables()
-
-
-    def set_pulseSchedule(self,):
-        match self.machine_type:
-            case qblox:
-                # from A import B_ps, B_ana
-                self.raw_data = []
-
+        self.name:str = name
+        self.type:str = custom_type
+        self.uniqueness:int = uniqueness
     
-    def set_analysis(self,*args):
-        pass #fig = B_ana(self.raw_data)
-
+    def __check_uniqueness__(self):
+        if int(self.uniqueness) > 3:
+            raise ValueError("Uniqueness must lower than or equal to 3 !")
     
-    def workflow(self):
-        self.machine_type = ""
-        # self.ro_elements, self.machine_type = FBI.decode()
-        self.set_pulseSchedule()
-        self.set_analysis()
+    def __giveProgramReadable__(self):
+        if "freq" in self.name.lower():
+            self.readable = "freq_samples"
+        elif "power" in self.name.lower():
+            self.readable = "power_samples"
+        elif "bias" in self.name.lower():
+            self.readable = "bias_samples"
+        elif "z_amp" in self.name.lower():
+            self.readable = "z_samples"
+        elif "time" in self.name.lower():
+            self.readable = "time_samples"
+        else:
+            self.readable = "dummy_samples"
 
 
-if __name__ == "__main__":
-    
-    s1 = S1_CS()
-    s1.provide_ExpSurveyInfo()
-    shared_Paras = [name for name in [name for name, _ in inspect.getmembers(s1) if not name.startswith("__")] if  name.startswith("_") and name.endswith("_")]
-    print(shared_Paras)
-    unique_Paras = [name for name in list(vars(s1).keys()) if name not in shared_Paras and name.split("_")[-1].lower() != 'protocol']
-    print(unique_Paras)
 
+  
 
