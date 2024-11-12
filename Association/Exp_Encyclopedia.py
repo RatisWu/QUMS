@@ -2,37 +2,37 @@
 from Soul import ExpParas, ExpSpirit
 import inspect
 
-class S0_MeasInit():
+class SampleRegister():
     def __init__(self):
+        self.provide_ExpSurveyInfo()
+    
+    def get_ExpLabel(self)->str:
+        return "S0"
+
+    def provide_ExpSurveyInfo(self):
         self.Instrument_IP = ExpParas("Machine_IP","str",1)
-        self.how_many_couplers = ExpParas("Couplers_Number","int",1)
-        self.how_many_qubits = ExpParas("Qubits_Number","int",1)
         self.cool_down_date = ExpParas("cool_down_date","str",1)
         self.cool_down_dr = ExpParas("cool_down_dr","str",1)
         self.sample_name = ExpParas("sample_name","str",1)
-        self.chip_type = ExpParas("chip_type","str",1)
+        
 
 
-class S1_CS(ExpSpirit):
+class BbCavitySearch(ExpSpirit):
     def __init__(self):
         super().__init__()
 
+    def get_ExpLabel(self)->str:
+        return "S1"
 
-    def set_qubitUnique_variables(self):
-        self.freq_range = list([])
-        
-    def set_SurveyDecodeProtocol(self):
-        # This part will be replace by a function built in parent
-        self.ro_elements_protocol:dict = {"layer":2,"1F":{"name":"joint_qbs","value":"2F"},"2F":[{"name":"freq_samples","value":"freq_range"}]} # The value in "2F" shoud exist in the ExpParasSurvey.toml 
-
-    def set_qubitShared_variables(self):
-        self._machine_IP_:str = ""
-        self._avg_n_:int = 0
-        self._list_sampling_func_:str = ""
+    def set_variables(self):
+        self.freq_range = ExpParas("freq_range","list",3)
+        self.bias_range = ExpParas("bias_range","list",2)
+        self.avg_n = ExpParas("avg_n","int",1)
+        self.freq_sampling_func = ExpParas("freq_sampling_func","func",1)
+        self.bias_sampling_func = ExpParas("bias_sampling_func","func",1)
 
     def provide_ExpSurveyInfo(self):
-        self.set_qubitShared_variables()
-        self.set_qubitUnique_variables()
+        self.set_variables()
 
 
     def set_pulseSchedule(self,):
@@ -55,7 +55,7 @@ class S1_CS(ExpSpirit):
 
 if __name__ == "__main__":
     
-    s1 = S1_CS()
+    s1 = BbCavitySearch()
     s1.provide_ExpSurveyInfo()
     shared_Paras = [name for name in [name for name, _ in inspect.getmembers(s1) if not name.startswith("__")] if  name.startswith("_") and name.endswith("_")]
     print(shared_Paras)

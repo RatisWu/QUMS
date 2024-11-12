@@ -1,0 +1,19 @@
+# Measurement Parameters Survey for S1_BbCavitySearch 
+
+avg_n = 100     # type in int
+
+bias_range = [-0.1,0.1,0.01]     # type in list, rule: [ start, end, pts/step ] depends on its sampling function or [fixed value]
+
+bias_sampling_func = ' arange ' # type in str, options [linspace/ arange/ logsapce/ maually] 
+
+freq_sampling_func = ' linspace ' # type in str, options [linspace/ arange/ logsapce/ maually] 
+
+
+[q0]
+    freq_range = [2e4,8e4,2e3]     # type in list, rule: [ start, end, pts/step ] depends on its sampling function or [fixed value]
+
+[q1]
+    freq_range = [3e4,9e4,3e3]     # type in list, rule: [ start, end, pts/step ] depends on its sampling function or [fixed value]
+
+
+

@@ -6,6 +6,11 @@ import inspect
 # Exp framework
 class ExpSpirit():
     def __init__(self):
+        self.provide_ExpSurveyInfo()
+
+    @abstractmethod
+    def get_ExpLabel(self,*args)->str:
+        ''' Return the exp label "S1", "S2", ... '''
         pass
     
     @abstractmethod
@@ -43,7 +48,7 @@ class ExpParas():
             1. self.uniqueness, return the uniqueness of it.
             2. self.value, return the name of it. 
             3. self.readable, helps program know where the PulseSchedule needs it, **Only** for uniqueness= 2 or 3 parameters.
-                -- for those which can be translated to readable it should includes the following keywords: ["freq", "power", "bias", "z_amp", "time"].
+                -- for those which can be translated to readable it should includes the following keywords: ["freq", "power", "bias", "z_amp", "time", "shots"].
         
         ### Raises:
         - **ValueError**: If uniqueness is higher than 3. 
@@ -56,20 +61,24 @@ class ExpParas():
     def __check_uniqueness__(self):
         if int(self.uniqueness) > 3:
             raise ValueError("Uniqueness must lower than or equal to 3 !")
+        
     
     def __giveProgramReadable__(self):
-        if "freq" in self.name.lower():
-            self.readable = "freq_samples"
-        elif "power" in self.name.lower():
-            self.readable = "power_samples"
-        elif "bias" in self.name.lower():
-            self.readable = "bias_samples"
-        elif "z_amp" in self.name.lower():
-            self.readable = "z_samples"
-        elif "time" in self.name.lower():
-            self.readable = "time_samples"
-        else:
-            self.readable = "dummy_samples"
+        if self.uniqueness >= 2:
+            if "freq" in self.name.lower():
+                self.readable = "freq_samples"
+            elif "power" in self.name.lower():
+                self.readable = "power_samples"
+            elif "bias" in self.name.lower():
+                self.readable = "bias_samples"
+            elif "z_amp" in self.name.lower():
+                self.readable = "z_samples"
+            elif "time" in self.name.lower():
+                self.readable = "time_samples"
+            elif "sots" in self.name.lower():
+                self.readable = "shots"
+            else:
+                self.readable = "dummy_samples"
 
 
 

@@ -1,21 +1,26 @@
 import os, tomli
-from Soul import Exp_Encyclopedia
 from Housekeeper import Maid
 from FBI import Canvasser
 
 
-class Coordinator(Exp_Encyclopedia):
+class Coordinator():
     
     def __init__(self):
        pass
 
 
     def __ExpParasCollects__(self, *args, **kwargs):
-        Agent = Canvasser("_",[])
-        self.shared_settings, self.ro_elements, self.bias_elements = Agent.__toml_decoder__()
-        self.exp = Agent.exp_type
-        self.machine_IP:str = Agent.assigned_paras["machine_IP"]
-        self.intrument_type:str = Agent.exp_machine_type
+        Survey = Canvasser("",[])
+        Survey.__toml_decoder__(r"C:\Users\ratis_wu\Documents\GitHub\UQMS\S1_ExpParasSurvey.toml")
+        self.Exp = Survey.__callExp__()
+        parameters = Survey.assigned_paras
+        for para_name in parameters :
+            setattr(self.Exp, para_name, parameters[para_name])
+
+            print(para_name,": ",getattr(self.Exp, para_name))
+        
+
+
 
     def __ExpExecutes__(self, *args, **kwargs):
         pass
@@ -33,4 +38,5 @@ class Coordinator(Exp_Encyclopedia):
 
 
 if __name__ == "__main__":
-    pass
+    CO = Coordinator()
+    CO.__ExpParasCollects__()
