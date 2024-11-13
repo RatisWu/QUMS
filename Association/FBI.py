@@ -1,12 +1,12 @@
 import os, sys, time, inspect, tomli
-from ExclusiveNames import *
-from Soul import ExpParas
-from Housekeeper import Maid
-from Roads import user_dep_config_folder, machine_IP_table
+from Association.ExclusiveNames import *
+from Association.Soul import ExpParas
+from Association.Housekeeper import Maid
+from Association.Roads import user_dep_config_folder, machine_IP_table
 from numpy import linspace, arange, ndarray
 from types import FunctionType
 from functools import partial
-import Exp_Encyclopedia
+from Association import Exp_Encyclopedia
 
 def owned_attribute(obj, attr):
     return hasattr(obj, attr) and attr in obj.__dict__
@@ -80,12 +80,13 @@ class Canvasser():
         # make parameters dependence  
         joint_qbs = [name for name in assigned_paras if name not in dir(self.brain)]
         self.assigned_paras = {}
-        for item in assigned_paras[joint_qbs[0]]:
-            self.assigned_paras[item] = {}
+        if len(joint_qbs) > 0:
+            for item in assigned_paras[joint_qbs[0]]:
+                self.assigned_paras[item] = {}
+                for q in joint_qbs:
+                    self.assigned_paras[item][q] = assigned_paras[q][item]
             for q in joint_qbs:
-                self.assigned_paras[item][q] = assigned_paras[q][item]
-        for q in joint_qbs:
-            del assigned_paras[q]
+                del assigned_paras[q]
             
         self.assigned_paras.update(assigned_paras)
 
@@ -133,7 +134,7 @@ if __name__ == "__main__":
 
     # get assigned meas parameters
     Survey = Canvasser("",[])
-    Survey.__toml_decoder__(r"C:\Users\ratis_wu\Documents\GitHub\UQMS\S1_ExpParasSurvey.toml")
+    Survey.toml_decoder(r"c:\ExpQueue\192_168_1_10\S0_ExpParasSurvey_cc90e236.toml")
     # maid = Maid(Survey.__assined_paras__,True) # register a new sample
     # data_folder_path = maid.sample_data_folder # to be saved into your config or QD_file
     # S1_main_roles = Survey.__toml_decoder__()

@@ -1,6 +1,6 @@
 import os, sys, tomli, random, shutil
-from Roads import machine_IP_table, queue_folder, user_dep_config_folder
-from ExclusiveNames import SurveyUniqueName, ConfigUniqueName
+from Association.Roads import machine_IP_table, queue_folder, user_dep_config_folder
+from Association.ExclusiveNames import SurveyUniqueName, ConfigUniqueName
 
 
 class Queuer():

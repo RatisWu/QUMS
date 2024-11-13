@@ -1,5 +1,5 @@
 import os, tomli
-from FBI import Canvasser
+from Association.FBI import Canvasser
 
 
 class Executor():

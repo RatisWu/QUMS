@@ -1,5 +1,5 @@
 
-from Soul import ExpParas, ExpSpirit
+from Association.Soul import ExpParas, ExpSpirit
 import inspect
 
 class SampleRegister():
