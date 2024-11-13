@@ -1,7 +1,7 @@
 import os, sys, tomli, random, shutil, json
 from Association.Roads import machine_IP_table, queue_folder, user_dep_config_folder
 from Association.ExclusiveNames import SurveyUniqueName, ConfigUniqueName, IdentityUniqueName
-from Association.Housekeeper import Maid
+
 
 class Queuer():
     def __init__(self):
@@ -45,6 +45,13 @@ class Queuer():
             
         self.machine_system:str = self.ip_table[self.machine_IP]
         self.queue:str = os.path.join(queue_folder,self.machine_IP)
+
+        # Check machine available 
+        match self.machine_system.lower():
+            case 'qm':
+                pass
+            case 'qblox':
+                pass
 
         self.__JobIDAssigner__()
 
