@@ -12,7 +12,7 @@ class Executor():
 
     def __ExpParasCollects__(self, *args, **kwargs):
         Survey = Canvasser("",[])
-        Survey.toml_decoder(self.survey_path)
+        Survey.para_decoder(self.survey_path)
         self.Exp = Survey.brain
         parameters = Survey.assigned_paras
         for para_name in parameters :
@@ -27,11 +27,13 @@ class Executor():
         pass
 
     def MeasWorkFlow(self):
+        raw_data_path = ""
         self.__ExpParasCollects__()
 
         self.__ExpExecutes__()
 
         self.__ExpResultsAnalyzes__()
+        return raw_data_path
 
 
 
