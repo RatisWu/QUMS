@@ -1,56 +1,48 @@
 import sys, os, time, tomli
-from qblox.support.QDmanager import QDmanager
+from qblox_drive_AS.support.UserFriend import slightly_print
+from Roads import data_folder
 
-user_dep_config_folder = os.path.join(os.path.expanduser("~"),"MeasConfigs") # should all ways one file which name as "S?_ExpParasSurvey.toml"
-data_folder = os.path.join(os.path.abspath(os.sep),"ExpData")
-machine_IP_table = os.path.join(os.path.abspath(os.sep),"ExpMachineIP","MachineIP_rec.toml")
 
-# class Maid():
-#     """ Connected to Conductor.Coordinator, it's responsible for build up some folders like Data-saving, """
-#     def __init__(self, exp_paras:dict, sample_register:bool=False):
-#         self.__exp_paras__ = exp_paras
-#         if sample_register:
-#             self.__registerSample__()
 
-#     def __registerSample__(self):
-#         # Create sample data folder
-#         self.sample_data_folder = os.path.join(data_folder,self.__exp_paras__["sample_name"].replace(" ",""))
-#         if os.path.exists(self.sample_data_folder):
-#             raise NameError("This sample name had been registered, please try the other name to register it like add '_v2' after the name.")
-#         else :
-#             os.mkdir(self.sample_data_folder)
-#         # build up sample info toml
-#         with open(os.path.join(self.sample_data_folder,"sample_info.toml"), "w") as file:
-#             for item in self.__exp_paras__:
-#                 file.write(f"{item} = '{self.__exp_paras__[item]}'\n")  # Inline comments
-#                 file.write("\n")  #
+
+class Maid():
+    """ Connected to Conductor.Coordinator, it's responsible for build up some folders like Data-saving, """
+    def __init__(self, exp_paras:dict, sample_register:bool=False):
+        self.__exp_paras__ = exp_paras
+        if sample_register:
+            self.__registerSample__()
+
+    def __registerSample__(self):
+        # Create sample data folder
+        self.sample_data_folder = os.path.join(data_folder,self.__exp_paras__["sample_name"].replace(" ",""))
+        if not os.path.exists(self.sample_data_folder):
+            os.mkdir(self.sample_data_folder)
+        else:
+            slightly_print("This sample had been measured ! Use the original folder.")
         
-#         print(f"sample '{self.__exp_paras__['sample_name'].replace(' ','')}' successfully registered !")
+        # build up sample info toml
+        with open(os.path.join(self.sample_data_folder,"sample_info.toml"), "w") as file:
+            for item in self.__exp_paras__:
+                file.write(f"{item} = '{self.__exp_paras__[item]}'\n")  # Inline comments
+                file.write("\n")  #
+        
+        print(f"sample '{self.__exp_paras__['sample_name'].replace(' ','')}' successfully registered !")
 
 
-#     def __getSampleInfo__(self,sample_folder_path:str):
-#         info = {}
-#         with open(os.path.join(sample_folder_path,"sample_info.toml"), "rb") as file:
-#             sample_info = tomli.load(file)
-#         for info_name, value in sample_info.items():
-#             info[info_name] = value.replace(" ","")
-#         return info
+    def getSampleInfo(self,sample_folder_path:str):
+        info = {}
+        with open(os.path.join(sample_folder_path,"sample_info.toml"), "rb") as file:
+            sample_info = tomli.load(file)
+        for info_name, value in sample_info.items():
+            info[info_name] = value.replace(" ","")
+        return info
     
-#     def __createNewQD__(self,sample_folder_path:str):
-#         """ For qblox system """
-#         sample_info = self.__getSampleInfo__(sample_folder_path)
-#         Qmanager = QDmanager(user_dep_config_folder)
-#         # Check HCFG is in the config folder 
-         
-#         Qmanager.build_new_QD(int(sample_info['how_many_qubits']),int(sample_info['how_many_couplers']),cfg,sample_info['Instrument_IP'],sample_info['cool_down_dr'],chip_name=sample_info['sample_name'],chip_type=sample_info['chip_type'])
-#         Qmanager.refresh_log("new-born!")
-
 
 
 if __name__ == "__main__":
-    # m = Maid({})
-    # sample_info = m.__getSampleInfo__(r"C:\ExpData\5Q4C_Test")
-    print(user_dep_config_folder)
+    m = Maid({})
+    
+
 
 
 
