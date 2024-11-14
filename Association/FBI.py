@@ -1,33 +1,31 @@
 import os, sys, time, inspect, tomli
 from Association.ExclusiveNames import *
 from Association.Soul import ExpParas
-from Association.Housekeeper import Maid
-from Association.Roads import user_dep_config_folder, machine_IP_table
-from numpy import linspace, arange, ndarray
-from types import FunctionType
-from functools import partial
 from Association import Exp_Encyclopedia
+from qblox_drive_AS.support.UserFriend import *
+
 
 def owned_attribute(obj, attr):
     return hasattr(obj, attr) and attr in obj.__dict__
 
 
 class Canvasser():
-    def __init__(self,exp_type:str, target_qs:list):
-        self.exp_type:str=exp_type
-        self.exp_target_qs:list = target_qs if exp_type.lower() != 's0' else []
+    def __init__(self):
+        pass
 
     def __callExp__(self):
-        return getattr(Exp_Encyclopedia,[name for name, obj in inspect.getmembers(Exp_Encyclopedia,inspect.isclass) if owned_attribute(obj,"get_ExpLabel") and obj().get_ExpLabel() == self.exp_type][0])()#if self.exp_type == getattr(Exp_Encyclopedia,name)().get_ExpLabel() and isinstance(getattr(Exp_Encyclopedia,name), type)]:
+        return getattr(Exp_Encyclopedia,[name for name, obj in inspect.getmembers(Exp_Encyclopedia,inspect.isclass) if owned_attribute(obj,"get_ExpLabel") and obj().get_ExpLabel() == self.exp_type][0])()
             
         
-    def generate_ExpParas_servey(self):
+    def generate_ExpParas_servey(self,exp_type,target_qs:list):
+        self.exp_type = exp_type
         # Get all attributes of the class excluding built-in ones
-        self.file_path=f"{self.exp_type}_{SurveyUniqueName}.toml"
+        self.file_path=os.path.join(os.path.expanduser("~"),f"{self.exp_type}_{SurveyUniqueName}.toml")
         self.brain = self.__callExp__()
         
         with open(self.file_path, "w") as file:
-            file.write(f"# Measurement Parameters Survey for {self.brain.get_ExpLabel()}_{self.brain.__class__.__name__} \n\n")
+            file.write(f"# Measurement Parameters Survey for {self.brain.get_ExpLabel()}_{self.brain.__class__.__name__} \n")
+            file.write(f"# *** Unit: Frequency (Hz), Time (s). \n\n")
             
             # common parameters
             for attr_name in [name for name, _ in inspect.getmembers(self.brain) if not name.startswith("__") and isinstance(getattr(self.brain,name),ExpParas) and getattr(self.brain,name).uniqueness != 3]:
@@ -47,7 +45,7 @@ class Canvasser():
                                 file.write(f"{attr.name} =      # type in {attr.type if attr.type.lower() != 'list' else 'list, rule: [ start, end, pts/step ] depends on its sampling function or [fixed value]'}\n")
                 file.write("\n")
             # most unique parameters
-            for target in self.exp_target_qs:
+            for target in target_qs:
                 file.write(f'[{target}]\n')    
                 for attr_name in [name for name, _ in inspect.getmembers(self.brain) if not name.startswith("__") and isinstance(getattr(self.brain,name),ExpParas) and getattr(self.brain,name).uniqueness == 3]:
                     attr:ExpParas = getattr(self.brain,attr_name)
@@ -58,22 +56,20 @@ class Canvasser():
                             file.write(f"   {attr.name} =      # type in {attr.type if attr.type.lower() != 'list' else 'list, rule: [ start, end, pts/step ] depends on its sampling function or [fixed value]'}\n")
                 file.write("\n")
 
-    def para_decoder(self,survey_path:str=None):
-        if survey_path is None:
-            survey_path = [os.path.join(user_dep_config_folder,name) for name in os.listdir(user_dep_config_folder) if (os.path.isfile(os.path.join(user_dep_config_folder,name)) and SurveyUniqueName in name)][0]
+        eyeson_print(f"ParameterSurvey had been assigned to you with the name '{self.exp_type}_{SurveyUniqueName}', ckeck this path:\n")
+        slightly_print(os.path.expanduser("~"))
 
+    def para_decoder(self,survey_path:str=None):
+        
         # Load exp parameters from TOML file
         with open(survey_path, "rb") as file:
             toml_data = tomli.load(file)
 
-        
         self.exp_type = os.path.split(survey_path)[-1].split("_")[0]
         self.brain = self.__callExp__()
+        
         #! Get parameters
         assigned_paras = {}
-        # Assign values to object attributes
-        # Dynamically create attributes for each section in the TOML data
-        
         for section, attributes in toml_data.items():
             assigned_paras[section] = attributes
         
@@ -88,26 +84,35 @@ class Canvasser():
             for q in joint_qbs:
                 del assigned_paras[q]
             
-        self.assigned_paras.update(assigned_paras)
+        self.assigned_paras.update(assigned_paras) # completed
 
     
-    def config_decoder(self):
-        pass
+    def config_decoder(self,machine_type:str,config_path:str)->list:
+        """ Remember: config_path is a folder ! """
+        match machine_type.lower():
+            case 'qblox':
+                # [ QD_path ]
+                self.hardware_connections:list = [os.path.join(config_path,name) for name in os.listdir(config_path) if os.path.isfile(os.path.join(config_path,name)) and name.split(".")[-1] == 'pkl']
+            case 'qm':
+                from QM_driver_AS.ultitly.config_io import import_config
+                indication_toml_path = os.path.join(config_path,"config_link.toml")
+                # [ config_obj, spec ]
+                self.hardware_connections = list(import_config( indication_toml_path ))
+            case _:
+                """ To be determined """
+                raise KeyError(f"Unknown machine type was given as '{machine_type}', Expected only 'QM' or 'Qblox'.")
+
         
 
 
         
 if __name__ == "__main__":
 
-    # Create meas parameters survey
-    # Survey = Canvasser('S1', ['q0','q1'])
-    # Survey.__generate_ExpParas_servey__()
+    """ Create meas parameters survey """
+    # Survey = Canvasser()
+    # Survey.generate_ExpParas_servey('S1', ['q0','q1'])
 
-    # get assigned meas parameters
-    Survey = Canvasser("",[])
+    """ get assigned meas parameters """
+    Survey = Canvasser()
     Survey.para_decoder(r"c:\ExpQueue\192_168_1_10\S0_ExpParasSurvey_cc90e236.toml")
-    # maid = Maid(Survey.__assined_paras__,True) # register a new sample
-    # data_folder_path = maid.sample_data_folder # to be saved into your config or QD_file
-    # S1_main_roles = Survey.__toml_decoder__()
-    # print(S1_main_roles)
 

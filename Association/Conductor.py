@@ -1,5 +1,6 @@
 import os, tomli
 from Association.FBI import Canvasser
+from Association.Soul import ExpSpirit
 
 
 class Executor():
@@ -8,32 +9,37 @@ class Executor():
        self.survey_path = survey_path
        self.config_path = configs_path
        self.machine_type = machine_type
+       self.Survey = Canvasser()
 
 
     def __ExpParasCollects__(self, *args, **kwargs):
-        Survey = Canvasser("",[])
-        Survey.para_decoder(self.survey_path)
-        self.Exp = Survey.brain
-        parameters = Survey.assigned_paras
+        self.Survey.para_decoder(self.survey_path)
+        self.Exp:ExpSpirit = self.Survey.brain
+        self.Exp.save_data_folder = os.path.split(self.survey_path)[0]
+        self.Exp.JOBID = os.path.split(self.survey_path)[-1].split("_")[-1]
+        parameters = self.Survey.assigned_paras
         for para_name in parameters :
             setattr(self.Exp, para_name, parameters[para_name])
 
-            print(para_name,": ",getattr(self.Exp, para_name))
         
     def __ExpExecutes__(self, *args, **kwargs):
-        pass
+        self.Survey.config_decoder(self.machine_type,self.config_path)
+        self.Exp.machine_type = self.machine_type
+        self.Exp.connections = self.Survey.hardware_connections
+        self.Exp.start_measurement()
 
     def __ExpResultsAnalyzes__(self, *args, **kwargs):
-        pass
+        self.Exp.start_analysis()
 
-    def MeasWorkFlow(self):
-        raw_data_path = ""
+    def MeasWorkFlow(self,bypass:bool=False):
+        ''' Use arg `bypass` skip connecting to machine '''
         self.__ExpParasCollects__()
 
-        self.__ExpExecutes__()
+        if not bypass:
+            self.__ExpExecutes__()
 
-        self.__ExpResultsAnalyzes__()
-        return raw_data_path
+            self.__ExpResultsAnalyzes__()
+
 
 
 

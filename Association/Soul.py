@@ -1,11 +1,15 @@
 from numpy import ndarray
 from types import FunctionType
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 import inspect
 
 # Exp framework
-class ExpSpirit():
+class ExpSpirit(ABC):
     def __init__(self):
+        self.save_data_folder:int = ""
+        self.machine_type:str = ""
+        self.connections:list = []
+        self.JOBID:str = ""
         self.provide_ExpSurveyInfo()
 
     @abstractmethod
@@ -15,18 +19,27 @@ class ExpSpirit():
     
     @abstractmethod
     def provide_ExpSurveyInfo(self,*args):
+        """ Let FBI.Canvasser know what parameters for measurement should be in the ExpParasSurvey.toml """
         pass
     
     @abstractmethod
     def set_variables(self,*args):
+        """ What is the parameters for this measurement ? Set them in attributes. """
+        pass
+
+
+    @abstractmethod
+    def start_measurement(self,system:str,*args):
+        """ After connceted to the machine, prepare and run the pulse schedule and get the exp raw data. """
         pass
 
     @abstractmethod
-    def set_pulseSchedule(self,system:str,*args):
+    def start_analysis(self,*args):
+        """ Have raw data, analyze it here. """
         pass
 
-    @abstractmethod
-    def set_analysis(self,*args):
+    def workflow(self,hardware_info:dict):
+        """ Good looking """
         pass
 
 # Exp parameter type

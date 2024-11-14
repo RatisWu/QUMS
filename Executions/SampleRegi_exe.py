@@ -9,7 +9,7 @@ items = Supervisor.QueueIn() #
 SampleName = Supervisor.sample_name
 MachineIP = Supervisor.machine_IP
 
-Survey = Canvasser("",[])
+Survey = Canvasser()
 Survey.para_decoder(items["Survey_path"])
 maid = Maid(Survey.assigned_paras, True)
 for item in items:

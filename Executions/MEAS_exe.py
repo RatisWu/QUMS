@@ -3,14 +3,19 @@ from Association.TrafficBureau import Queuer
 from Association.Conductor import Executor
 from Association.FBI import Canvasser
 from Association.Housekeeper import Maid
+from qblox_drive_AS.support.UserFriend import *
 
 Supervisor = Queuer()
-items = Supervisor.QueueIn()
+Supervisor.QueueIn()
 SampleName = Supervisor.sample_name
 
-Worker = Executor(Supervisor.machine_system, items["Survey_path"], items["Config_path"])
-raw_data_path = Worker.MeasWorkFlow()
+if not Supervisor.EnforcedQueueOut:
+    Worker = Executor(Supervisor.machine_system, Supervisor.program_requirements["Survey_path"],  Supervisor.program_requirements["Config_path"])
+    Worker.MeasWorkFlow(bypass=True)
 
-gifts = Supervisor.QueueOut(raw_data_path)
-Maid().save_process(gifts, SampleName)
+    Supervisor.QueueOut()
+    highlight_print("Measurement Complete! check the following path:\n")
+    slightly_print(Supervisor.JOB_folder)
+
+    
 

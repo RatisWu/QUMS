@@ -1,18 +1,27 @@
 import os, sys, tomli, random, shutil, json
-from Association.Roads import machine_IP_table, queue_folder, user_dep_config_folder
+from datetime import datetime
+from Association.Roads import machine_IP_table, queue_folder, user_dep_config_folder, data_folder
 from Association.ExclusiveNames import SurveyUniqueName, ConfigUniqueName, IdentityUniqueName
+from qblox_drive_AS.support.UserFriend import *
 
 
 class Queuer():
     def __init__(self):
         self.__CheckAllQueues__()
+        self.EnforcedQueueOut:bool = False
 
     def __JobIDAssigner__(self):
-        self.JOBID:str = '{:08x}'.format(random.randint(0,0xFFFFFFFF))
+        self.readableJOBID:str = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.JOBID:str = self.readableJOBID.replace("_","")
     
-    def __interchanges__(self):
+    def __Interchanges__(self):
         """ Reject the request into queue"""
         return self.Requirements
+
+    def __CheckMachineStatus__(self):
+        if len([name for name in os.listdir(self.queue) if (os.path.isdir(os.path.join(self.queue,name)) or os.path.isfile(os.path.join(self.queue,name)))]) != 0:
+            self.EnforcedQueueOut = True
+            warning_print(f"Machine {self.machine_IP} is executing a mission now, deny queue in your request.")
 
 
     def __CheckAllQueues__(self):
@@ -22,37 +31,40 @@ class Queuer():
         for machine_queue in [os.path.join(queue_folder,ip.replace(".","_")) for ip, _ in self.ip_table.items()]:
             if not os.path.exists(machine_queue):
                 os.mkdir(machine_queue)
+
+    def __CheckSampleTodayFolder__(self):
+        os.makedirs(os.path.join(data_folder,self.sample_name),exist_ok=True)
+        self.this_sample_today_folder = os.path.join(data_folder,self.sample_name,datetime.now().strftime("%Y%m%d"))
+        os.makedirs(self.this_sample_today_folder,exist_ok=True)
     
     def __TouchConfigNPara__(self)->dict:
         Config = [os.path.join(user_dep_config_folder,name) for name in os.listdir(user_dep_config_folder) if (os.path.isdir(os.path.join(user_dep_config_folder,name)) and ConfigUniqueName.lower() in name.lower())]
         Survey = [os.path.join(user_dep_config_folder,name) for name in os.listdir(user_dep_config_folder) if (os.path.isfile(os.path.join(user_dep_config_folder,name)) and SurveyUniqueName in name and name.split(".")[-1] == 'toml')][0]
-        Identity = [os.path.join(user_dep_config_folder,name) for name in os.listdir(user_dep_config_folder) if (os.path.isfile(os.path.join(user_dep_config_folder,name)) and IdentityUniqueName == name.split(".")[0])][0]
+        self.Identity = [os.path.join(user_dep_config_folder,name) for name in os.listdir(user_dep_config_folder) if (os.path.isfile(os.path.join(user_dep_config_folder,name)) and IdentityUniqueName == name.split(".")[0])][0]
         
         if os.path.split(Survey)[-1].split("_")[0].upper() == "S0":
-            self.Requirements:dict = {"Survey_path":Survey,"ID_path":Identity}
+            self.Requirements:dict = {"Survey_path":Survey}
+            self.EnforcedQueueOut = True
         else:
             if len(Config) >= 1:
-                self.Requirements:dict = {"Config_path":Config[0],"Survey_path":Survey,"ID_path":Identity}
+                self.Requirements:dict = {"Config_path":Config[0],"Survey_path":Survey}
             else:
                 raise ValueError("Can't see any ExpConfigs folder")
     
     def __JOBIDLabels__(self):
-        with open(self.Requirements["ID_path"], "r") as file:
+        with open(self.Identity, "r") as file:
             ID_card = json.load(file)
 
-        self.sample_name = ID_card["Sample Name"].replace(" ","")
-        self.machine_IP = ID_card["Machine Address"].replace(" ","")
+        self.sample_name = str(ID_card["Sample Name"]).replace(" ","")
+        self.machine_IP = str(ID_card["Machine Address"]).replace(" ","")
             
         self.machine_system:str = self.ip_table[self.machine_IP]
-        self.queue:str = os.path.join(queue_folder,self.machine_IP)
+        self.queue:str = os.path.join(queue_folder,self.machine_IP.replace(".","_"))
 
         # Check machine available 
-        match self.machine_system.lower():
-            case 'qm':
-                pass
-            case 'qblox':
-                pass
+        self.__CheckMachineStatus__()
 
+        # assign JOBID
         self.__JobIDAssigner__()
 
 
@@ -64,24 +76,43 @@ class Queuer():
         self.__JOBIDLabels__()
 
         # step_3 Rename the requirements and move it into queue folder according to the machine address.
-        program_requirements = {}
-        if "Config_path" in self.Requirements:
+        self.program_requirements = {}
+
+        if not self.EnforcedQueueOut :
             for requirement in self.Requirements:
                 match requirement:
                     case "Config_path":
                         JOBID_labeled_name = f"{os.path.split(self.Requirements['Config_path'])[-1]}_{self.JOBID}"
-                    case _:
+                    case "Survey_path":
                         JOBID_labeled_name = f"{os.path.split(self.Requirements['Survey_path'])[-1].split('.')[0]}_{self.JOBID}.toml"
-
                 shutil.move(self.Requirements[requirement],os.path.join(self.queue,JOBID_labeled_name))
-                program_requirements[requirement] = os.path.join(self.queue,JOBID_labeled_name)
+                self.program_requirements[requirement] = os.path.join(self.queue,JOBID_labeled_name)
+                
         else:
-            program_requirements = self.__interchanges__()
-        
-        return program_requirements
+            self.program_requirements = self.__Interchanges__()
+            
 
-    def QueueOut(self,raw_data_path:str=None)->dict:
-        pass
+    def QueueOut(self)->dict:
+        # step_1 check this sample had been created a folder today
+        self.__CheckSampleTodayFolder__()
+
+        # step_2 create a folder for this measurement by this JOBID
+        self.JOB_folder = os.path.join(self.this_sample_today_folder,self.readableJOBID)
+        os.makedirs(self.JOB_folder,exist_ok=True)
+
+        # step_3 If use qblox, move the updated QD_file folder back to user belonged Config folder 
+        if self.machine_system.lower() == 'qblox' and f"Updated_{ConfigUniqueName}" in os.listdir(self.queue):
+            shutil.move(os.path.join(self.queue, f"Updated_{ConfigUniqueName}"), user_dep_config_folder)
+            eyeson_print(f"New QD-file folder had been name 'Updated_{ConfigUniqueName}' and moved to your 'MeasConfigs' folder, check the following path:\n")
+            slightly_print(f"{os.path.join(user_dep_config_folder,f'Updated_{ConfigUniqueName}')}")
+        
+        # step_4 Move all the item in queue to the JOBID-folder, expected with: ExpConfigs folder (used), ExpParasSurvey.toml (used), EXP-results.nc and EXP-analysis.png
+        for item_path in [os.path.join(self.queue, name) for name in os.listdir(self.queue)]:
+            shutil.move(item_path, self.JOB_folder)
+
+
+
+        
 
 
 
