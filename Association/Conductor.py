@@ -38,7 +38,7 @@ class Executor():
         if not bypass:
             self.__ExpExecutes__()
 
-            # self.__ExpResultsAnalyzes__()
+            self.__ExpResultsAnalyzes__()
 
 
 

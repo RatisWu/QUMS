@@ -81,7 +81,7 @@ class BbCavitySearch(ExpSpirit):
                 self.raw_data_path:str = os.path.join(self.save_data_folder,f"ROFreqSweep_{self.JOBID}.nc")
                 print(f"raw at= {self.raw_data_path}")
                 self.dataset = my_exp.run( int(self.avg_n))
-                self.dataset.to_netcdf(self.raw_data_path)
+                self.dataset.to_netcdf(self.raw_data_path,engine='netcdf4')
     
     def start_analysis(self,*args):
         """ Wait calling from Conductor.Executor """
