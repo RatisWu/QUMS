@@ -5,7 +5,8 @@ from Association.Soul import ExpParas, ExpSpirit
 from qspec.channel_info import ChannelInfo
 from config_component.configuration import Configuration
 from ab.QM_config_dynamic import initializer
-from qblox_drive_AS.support import init_meas
+from qblox_drive_AS.support import QDmanager, Data_manager
+from qblox_drive_AS.support.UserFriend import *
 from Association.ExclusiveNames import ConfigUniqueName
 
 
@@ -45,10 +46,20 @@ class BbCavitySearch(ExpSpirit):
 
 
     def start_measurement(self):
+        
         match self.machine_type.lower():
             case 'qblox':
-                # self.QD_agent, cluster, meas_ctrl, ic, Fctrl = init_meas(self.connections[0])
-                pass
+                from qblox_drive_AS.support.ExpFrames import BroadBand_CavitySearching
+                self.EXP = BroadBand_CavitySearching(QD_path=self.connections[0],data_folder=self.save_data_folder,JOBID=self.JOBID)
+                target_q = list(self.freq_range.keys())[0]
+                if self.freq_sampling_func == 'arange':
+                    pts = int(abs(float(self.freq_range[target_q][1])-float(self.freq_range[target_q][0]))/float(self.freq_range[target_q][2]))
+                else:
+                    pts = int(self.freq_range[target_q][2])
+                self.EXP.SetParameters([target_q],float(self.freq_range[target_q][0]),float(self.freq_range[target_q][1]),pts)
+                self.EXP.WorkFlow()
+                eyeson_print("Raw data located:")
+                slightly_print(self.EXP.RawDataPath)
 
             case 'qm':
                 from exp.rofreq_sweep import ROFreqSweep
@@ -74,9 +85,7 @@ class BbCavitySearch(ExpSpirit):
         match self.machine_type.lower():
             case 'qblox':
                 new_QD_folder = shutil.copytree(os.path.split(self.connections[0])[0],os.path.join(os.path.split(os.path.split(self.connections[0])[0])[0],f"Updated_{ConfigUniqueName}"))
-                # self.QD_agent, cluster, meas_ctrl, ic, Fctrl = init_meas(self.connections[0])
-                # new_QD_file = os.path.join(new_QD_folder,f"{self.QD_agent.Identity}_SumInfo.pkl")
-                # self.QD_agent.QD_keeper(special_path=new_QD_file)
+                self.EXP.RunAnalysis(new_QD_folder)
 
             case 'qm':
                 import numpy as np

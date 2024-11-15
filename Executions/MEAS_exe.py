@@ -11,10 +11,10 @@ SampleName = Supervisor.sample_name
 
 if not Supervisor.EnforcedQueueOut:
     Worker = Executor(Supervisor.machine_system, Supervisor.program_requirements["Survey_path"],  Supervisor.program_requirements["Config_path"])
-    Worker.MeasWorkFlow(bypass=True)
+    Worker.MeasWorkFlow()
 
     Supervisor.QueueOut()
-    highlight_print("Measurement Complete! check the following path:\n")
+    highlight_print("Measurement Complete! check the following path:")
     slightly_print(Supervisor.JOB_folder)
 
     

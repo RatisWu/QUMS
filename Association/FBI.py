@@ -14,7 +14,9 @@ class Canvasser():
         pass
 
     def __callExp__(self):
-        return getattr(Exp_Encyclopedia,[name for name, obj in inspect.getmembers(Exp_Encyclopedia,inspect.isclass) if owned_attribute(obj,"get_ExpLabel") and obj().get_ExpLabel() == self.exp_type][0])()
+        page = [name for name, obj in inspect.getmembers(Exp_Encyclopedia,inspect.isclass) if owned_attribute(obj,"get_ExpLabel") and name != "ExpSpirit"] 
+        method = [getattr(Exp_Encyclopedia,exp)() for exp in page if getattr(getattr(Exp_Encyclopedia,exp)(),"get_ExpLabel")() == self.exp_type][0]
+        return method
             
         
     def generate_ExpParas_servey(self,exp_type,target_qs:list):

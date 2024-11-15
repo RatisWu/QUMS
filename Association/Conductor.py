@@ -16,7 +16,7 @@ class Executor():
         self.Survey.para_decoder(self.survey_path)
         self.Exp:ExpSpirit = self.Survey.brain
         self.Exp.save_data_folder = os.path.split(self.survey_path)[0]
-        self.Exp.JOBID = os.path.split(self.survey_path)[-1].split("_")[-1]
+        self.Exp.JOBID = os.path.split(self.survey_path)[-1].split("_")[-1].split(".")[0]
         parameters = self.Survey.assigned_paras
         for para_name in parameters :
             setattr(self.Exp, para_name, parameters[para_name])

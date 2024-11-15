@@ -103,7 +103,7 @@ class Queuer():
         # step_3 If use qblox, move the updated QD_file folder back to user belonged Config folder 
         if self.machine_system.lower() == 'qblox' and f"Updated_{ConfigUniqueName}" in os.listdir(self.queue):
             shutil.move(os.path.join(self.queue, f"Updated_{ConfigUniqueName}"), user_dep_config_folder)
-            eyeson_print(f"New QD-file folder had been name 'Updated_{ConfigUniqueName}' and moved to your 'MeasConfigs' folder, check the following path:\n")
+            eyeson_print(f"New QD-file folder had been name 'Updated_{ConfigUniqueName}' and moved to your 'MeasConfigs' folder, check the following path:")
             slightly_print(f"{os.path.join(user_dep_config_folder,f'Updated_{ConfigUniqueName}')}")
         
         # step_4 Move all the item in queue to the JOBID-folder, expected with: ExpConfigs folder (used), ExpParasSurvey.toml (used), EXP-results.nc and EXP-analysis.png
