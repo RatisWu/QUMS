@@ -16,7 +16,8 @@ setup(
         'quantify-scheduler==0.20.0',
         'qm-octave==1.2.0',
         'qm-qua==1.1.3',
-        'qualang-tools==0.15.2'
+        'qualang-tools==0.15.2',
+        'netCDF4'
     ],
     classifiers=[
         'Programming Language :: Python :: 3.10',

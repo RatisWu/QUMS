@@ -72,13 +72,16 @@ class BbCavitySearch(ExpSpirit):
                 my_exp.initializer = initializer(2000,mode='wait')
                 """ freq unit in MHz """
                 my_exp.freq_range = (float(self.freq_range[ro_q][0])*1e-6, float(self.freq_range[ro_q][1])*1e-6)
+                print(f"freq range= {my_exp.freq_range}")
                 if self.freq_sampling_func == 'arange':
                     my_exp.resolution = self.freq_range[ro_q][2]*1e-6
+                    print(f'arange ,step= {my_exp.resolution}')
                 else:
                     my_exp.resolution = (abs(float(self.freq_range[ro_q][1])-float(self.freq_range[ro_q][0]))/float(self.freq_range[ro_q][2]))*1e-6
                 self.raw_data_path:str = os.path.join(self.save_data_folder,f"ROFreqSweep_{self.JOBID}.nc")
-                self.dataset = my_exp.run( int(self.avg_n),save_path=self.raw_data_path)
-
+                print(f"raw at= {self.raw_data_path}")
+                self.dataset = my_exp.run( int(self.avg_n))
+                self.dataset.to_netcdf(self.raw_data_path)
     
     def start_analysis(self,*args):
         """ Wait calling from Conductor.Executor """

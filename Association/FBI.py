@@ -73,6 +73,8 @@ class Canvasser():
         #! Get parameters
         assigned_paras = {}
         for section, attributes in toml_data.items():
+            if type(attributes) == str:
+                attributes = attributes.replace(" ","")
             assigned_paras[section] = attributes
         
         # make parameters dependence  
@@ -96,10 +98,18 @@ class Canvasser():
                 # [ QD_path ]
                 self.hardware_connections:list = [os.path.join(config_path,name) for name in os.listdir(config_path) if os.path.isfile(os.path.join(config_path,name)) and name.split(".")[-1] == 'pkl']
             case 'qm':
-                from QM_driver_AS.ultitly.config_io import import_config
-                indication_toml_path = os.path.join(config_path,"config_link.toml")
+                from config_component.configuration import import_config
+                from qspec.channel_info import import_spec
+                for idx, item_name in enumerate([name for name in os.listdir(config_path) if name.split("_")[-1].split(".")[0] in ['config','spec']]):
+                    if idx == 2:
+                        raise FileExistsError("Why your '_config.pkl' or '_spec.pkl' is not unique ?")
+                    if item_name.split("_")[-1].split(".")[0] == 'config':
+                        config_obj = import_config(os.path.join(config_path,item_name))
+                    else:
+                        spec = import_spec(os.path.join(config_path,item_name))
+                
                 # [ config_obj, spec ]
-                self.hardware_connections = list(import_config( indication_toml_path ))
+                self.hardware_connections = list([config_obj,spec])
             case _:
                 """ To be determined """
                 raise KeyError(f"Unknown machine type was given as '{machine_type}', Expected only 'QM' or 'Qblox'.")

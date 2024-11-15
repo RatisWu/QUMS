@@ -9,7 +9,7 @@ S1: Broad-Band Cavity Search
 """
 
 What_exp_tag:str = 'S1'
-What_qubits_join:list = ['q0']
+What_qubits_join:list = ['q0_ro']
 
 
 Survey = Canvasser()
