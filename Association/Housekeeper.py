@@ -37,9 +37,7 @@ class Maid():
             info[info_name] = str(value).replace(" ","")
         return info
     
-    def save_process(self,queue_out_gift:list|dict,sameple_name:str):
-        pass
-    
+
 
 
 if __name__ == "__main__":

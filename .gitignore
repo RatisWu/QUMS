@@ -1,3 +1,6 @@
+# Once a new item added, use the following command in terminal within GitHub\UQMS\
+# git rm -rf --cached .
+# git add .
 Association\__pycache__
 calibration_db.json
 sequence.json
