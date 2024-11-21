@@ -28,8 +28,8 @@ class Executor():
         self.Exp.connections = self.Survey.hardware_connections
         self.Exp.start_measurement()
 
-    def __ExpResultsAnalyzes__(self, *args, **kwargs):
-        self.Exp.start_analysis()
+    def __ExpResultsAnalyzes__(self, ana_need_items:dict=None, *args, **kwargs):
+        self.Exp.start_analysis(analysis_need = ana_need_items)
 
     def MeasWorkFlow(self,bypass:bool=False):
         ''' Use arg `bypass` skip connecting to machine '''
@@ -38,7 +38,6 @@ class Executor():
         if not bypass:
             self.__ExpExecutes__()
 
-            self.__ExpResultsAnalyzes__()
 
 
 

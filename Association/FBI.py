@@ -19,10 +19,13 @@ class Canvasser():
         return method
             
         
-    def generate_ExpParas_servey(self,exp_type,target_qs:list):
+    def generate_ExpParas_servey(self,exp_type,target_qs:list,generate_2_this_folder:str=''):
         self.exp_type = exp_type
         # Get all attributes of the class excluding built-in ones
-        self.file_path=os.path.join(os.path.expanduser("~"),f"{self.exp_type}_{SurveyUniqueName}.toml")
+        if generate_2_this_folder == "":
+            self.file_path=os.path.join(os.path.expanduser("~"),f"{self.exp_type}_{SurveyUniqueName}.toml")
+        else:
+            self.file_path=os.path.join(generate_2_this_folder,f"{self.exp_type}_{SurveyUniqueName}.toml")
         self.brain = self.__callExp__()
         
         with open(self.file_path, "w") as file:
@@ -33,29 +36,29 @@ class Canvasser():
             for attr_name in [name for name, _ in inspect.getmembers(self.brain) if not name.startswith("__") and isinstance(getattr(self.brain,name),ExpParas) and getattr(self.brain,name).uniqueness != 3]:
                 attr:ExpParas = getattr(self.brain,attr_name)
                 match attr.uniqueness:
-                    case 1:
-                        match attr.type.lower():
-                            case 'str'|'function'|'func':
-                                file.write(f"{attr.name} = '  ' # type in {'str, options [linspace/ arange/ logsapce/ maually]' if attr.type.lower() in ['function','func'] else attr.type} \n")
-                            case _:
-                                file.write(f"{attr.name} =      # type in {attr.type if attr.type.lower() != 'list' else 'list, rule: [ start, end, pts/step ] depends on its sampling function or [fixed value]'}\n")
-                    case 2:
-                        match attr.type.lower():
-                            case 'str':
-                                file.write(f"{attr.name} = '  ' # type in str \n")
-                            case _:
-                                file.write(f"{attr.name} =      # type in {attr.type if attr.type.lower() != 'list' else 'list, rule: [ start, end, pts/step ] depends on its sampling function or [fixed value]'}\n")
+                    case 3:
+                       pass
+                    case _:
+                        if attr.type.lower() in ['str','func']:
+                            file.write(f"{attr.name} = '  '  # type in {attr.type} \n")
+                        else:
+                            file.write(f"{attr.name} =       # type in {attr.type} \n")
+                               
+                if attr.message != "":
+                    file.write(f"# {attr.message}\n")
                 file.write("\n")
             # most unique parameters
             for target in target_qs:
                 file.write(f'[{target}]\n')    
                 for attr_name in [name for name, _ in inspect.getmembers(self.brain) if not name.startswith("__") and isinstance(getattr(self.brain,name),ExpParas) and getattr(self.brain,name).uniqueness == 3]:
                     attr:ExpParas = getattr(self.brain,attr_name)
-                    match attr.type.lower():
-                        case 'str':
-                            file.write(f"   {attr.name} = '  ' # type in str \n")
-                        case _:
-                            file.write(f"   {attr.name} =      # type in {attr.type if attr.type.lower() != 'list' else 'list, rule: [ start, end, pts/step ] depends on its sampling function or [fixed value]'}\n")
+                    if attr.type.lower() in ['str','func']:
+                        file.write(f"   {attr.name} = '  '  # type in {attr.type} \n")
+                    else:
+                        file.write(f"   {attr.name} =       # type in {attr.type} \n")
+
+                if attr.message != "":
+                    file.write(f"   # {attr.message}\n")
                 file.write("\n")
 
         eyeson_print(f"ParameterSurvey had been assigned to you with the name '{self.exp_type}_{SurveyUniqueName}', ckeck this path:\n")
@@ -69,16 +72,17 @@ class Canvasser():
 
         self.exp_type = os.path.split(survey_path)[-1].split("_")[0]
         self.brain = self.__callExp__()
-        
+        print(self.brain)
         #! Get parameters
         assigned_paras = {}
         for section, attributes in toml_data.items():
             if type(attributes) == str:
                 attributes = attributes.replace(" ","")
             assigned_paras[section] = attributes
-        
+
         # make parameters dependence  
-        joint_qbs = [name for name in assigned_paras if name not in dir(self.brain)]
+        joint_qbs = [name for name in assigned_paras if name not in dir(self.brain)] # ExpParas.name not in self.brain.attributes
+        print("measure qs: ",joint_qbs)
         self.assigned_paras = {}
         if len(joint_qbs) > 0:
             for item in assigned_paras[joint_qbs[0]]:
@@ -89,6 +93,10 @@ class Canvasser():
                 del assigned_paras[q]
             
         self.assigned_paras.update(assigned_paras) # completed
+        # check paras:
+        print("Para Check:")
+        for item in self.assigned_paras:
+            print(item,": ",self.assigned_paras[item])
 
     
     def config_decoder(self,machine_type:str,config_path:str)->list:

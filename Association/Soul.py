@@ -44,13 +44,13 @@ class ExpSpirit(ABC):
 
 # Exp parameter type
 class ExpParas():
-    def __init__(self,name:str,custom_type:str,uniqueness:int=1):
+    def __init__(self,name:str,custom_type:str,uniqueness:int=1,message:str=""):
         """
         Level your exp parameters. Because in your measurement the exp parameters have different works, some are shared with every qubits, 
         another are exp variables but keep same between different qubits, the other are exactly unique for qubit.
 
         ### Parameters:
-        - name (`str`): The name of this parameter, will be shown on ExpParasSurvey.
+        - name (`str`): The name of this parameter, will be shown on ExpParasSurvey. Please keep it the same as the attribute name in Exp_Encyclopedia.
         - uniqueness (`int`): Specifying how unique is this parameter for the qubits.\n
          - uniqueness = 1 (common), for the parameter which is (1) **NOT** a exp-variable and (2) keeps the same for all qubits in this measurement, Ex. `avg_n`\n 
          - uniqueness = 2 (middle), for the parameter which is (1) a exp-variable and (2) keeps the same for all qubits in this measurement, Ex. `bias` when FluxCavity \n 
@@ -70,6 +70,7 @@ class ExpParas():
         self.name:str = name
         self.type:str = custom_type
         self.uniqueness:int = uniqueness
+        self.message:str = message
     
     def __check_uniqueness__(self):
         if int(self.uniqueness) > 3:
