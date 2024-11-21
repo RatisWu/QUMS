@@ -14,7 +14,7 @@ S2b: Dressed Cavity Search (Qblox only) #! qblox test OK
 S3 : Flux dependent Cavity/Coupler   #! qblox test OK
 S3b: Ground IQ positioning (Qblox only) #! qblox test OK
 S4 : Flux dependent Qubit spectrum  #! qblox test okay
-S4b: Power dependent Continuous 2-tone (Qblox only)
+S4b: Power dependent Continuous 2-tone (Qblox only) #! qblox test okay
 S5 : Power Rabi Oscillation
 S6 : Time Rabi Oscillation
 S7 : Single Shot
