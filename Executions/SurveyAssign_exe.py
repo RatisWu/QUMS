@@ -15,19 +15,20 @@ S3 : Flux dependent Cavity/Coupler   #! qblox test OK
 S3b: Ground IQ positioning (Qblox only) #! qblox test OK
 S4 : Flux dependent Qubit spectrum  #! qblox test okay
 S4b: Power dependent Continuous 2-tone (Qblox only) #! qblox test okay
-S5 : Power Rabi Oscillation
-S6 : Time Rabi Oscillation
-S7 : Single Shot
-S8 : Ramsey T2
-S9 : Spin Echo T2
-S10: T1
+S5 : Power Rabi Oscillation  #! qblox test okay
+S6 : Time Rabi Oscillation  #! qblox test okay
+S7 : Single Shot   #! qblox test okay
+S8 : Ramsey T2   #! qblox test okay
+S9 : Spin Echo T2   #! qblox test okay
+S9b: CPMG (Qblox only)
+S10: T1   #! qblox test okay
 
 -------- AuxiliaryMeas -------
 A1 : Zgate T1
 A2 : Time Monitor
 
 -------- Calibrations --------
-C1 : XYF calibration
+C1 : XYF calibration   #! qblox test okay
 C2 : ROF calibration
 C3 : ROL calibration
 C4 : Pi-amp calibration
@@ -47,8 +48,8 @@ R2M: 2Q Randomized Benchmarking (QM only)
 ####    Generation Eequirements    ####
 #######################################
 
-What_exp_tag:str = 'S4'
-What_qubits_join:list = ['q0',"q1"]
+What_exp_tag:str = 'S7'
+What_qubits_join:list = ['q0','q1']
 creat_survey_in_this_folder:str = ""
 
 

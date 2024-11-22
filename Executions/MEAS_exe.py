@@ -5,7 +5,7 @@ from Association.FBI import Canvasser
 from Association.Housekeeper import Maid
 from qblox_drive_AS.support.UserFriend import *
 
-beta_test:bool = 0 # bypass connecting to machine 
+beta_test:bool = 0       # bypass connecting to machine 
 
 Supervisor = Queuer()
 Supervisor.QueueIn()

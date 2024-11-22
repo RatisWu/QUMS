@@ -44,7 +44,7 @@ class ExpSpirit(ABC):
 
 # Exp parameter type
 class ExpParas():
-    def __init__(self,name:str,custom_type:str,uniqueness:int=1,message:str=""):
+    def __init__(self,name:str,custom_type:str,uniqueness:int=1,message:str="",pre_fill:str=None):
         """
         Level your exp parameters. Because in your measurement the exp parameters have different works, some are shared with every qubits, 
         another are exp variables but keep same between different qubits, the other are exactly unique for qubit.
@@ -68,12 +68,13 @@ class ExpParas():
         """
 
         self.name:str = name
+        self.pre_fill:str = pre_fill
         self.type:str = custom_type
         self.uniqueness:int = uniqueness
         self.message:str = message
     
     def __check_uniqueness__(self):
-        if int(self.uniqueness) > 3:
+        if int(self.uniqueness) > 4:
             raise ValueError("Uniqueness must lower than or equal to 3 !")
         
     

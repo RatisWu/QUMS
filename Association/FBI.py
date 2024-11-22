@@ -13,13 +13,16 @@ class Canvasser():
     def __init__(self):
         pass
 
-    def __callExp__(self):
+    def __callExp__(self,decode:bool=False):
         page = [name for name, obj in inspect.getmembers(Exp_Encyclopedia,inspect.isclass) if owned_attribute(obj,"get_ExpLabel") and name != "ExpSpirit"] 
         method = [getattr(Exp_Encyclopedia,exp)() for exp in page if getattr(getattr(Exp_Encyclopedia,exp)(),"get_ExpLabel")() == self.exp_type][0]
+        if decode:
+            if self.exp_type.lower() == "s7":
+                setattr(method,OneshotUniqueVariableName,[])  # method.target_qs = []
         return method
             
         
-    def generate_ExpParas_servey(self,exp_type,target_qs:list,generate_2_this_folder:str=''):
+    def generate_ExpParas_servey(self,exp_type:str,target_qs:list,generate_2_this_folder:str=''):
         self.exp_type = exp_type
         # Get all attributes of the class excluding built-in ones
         if generate_2_this_folder == "":
@@ -36,33 +39,48 @@ class Canvasser():
             for attr_name in [name for name, _ in inspect.getmembers(self.brain) if not name.startswith("__") and isinstance(getattr(self.brain,name),ExpParas) and getattr(self.brain,name).uniqueness != 3]:
                 attr:ExpParas = getattr(self.brain,attr_name)
                 match attr.uniqueness:
-                    case 3:
-                       pass
-                    case _:
-                        if attr.type.lower() in ['str','func']:
-                            file.write(f"{attr.name} = '  '  # type in {attr.type} \n")
+                    case 1 | 2:
+                        if attr.pre_fill is not None and attr.pre_fill != "":
+                            if attr.type.lower() in ['str','func']:
+                                file.write(f"{attr.name} = ' {attr.pre_fill} '  # type in {attr.type} \n")
+                            else:
+                                file.write(f"{attr.name} =  {attr.pre_fill}     # type in {attr.type} \n")
                         else:
-                            file.write(f"{attr.name} =       # type in {attr.type} \n")
+                            if attr.type.lower() in ['str','func']:
+                                file.write(f"{attr.name} = '  '  # type in {attr.type} \n")
+                            else:
+                                file.write(f"{attr.name} =       # type in {attr.type} \n")
+                    case _:
+                        pass
                                
                 if attr.message != "":
                     file.write(f"# {attr.message}\n")
                 file.write("\n")
             # most unique parameters
-            for target in target_qs:
-                file.write(f'[{target}]\n')    
-                for attr_name in [name for name, _ in inspect.getmembers(self.brain) if not name.startswith("__") and isinstance(getattr(self.brain,name),ExpParas) and getattr(self.brain,name).uniqueness == 3]:
-                    attr:ExpParas = getattr(self.brain,attr_name)
-                    if attr.type.lower() in ['str','func']:
-                        file.write(f"   {attr.name} = '  '  # type in {attr.type} \n")
-                    else:
-                        file.write(f"   {attr.name} =       # type in {attr.type} \n")
+            if self.exp_type.lower() != "s7":
+                for target in target_qs:
+                    file.write(f'[{target}]\n')    
+                    for attr_name in [name for name, _ in inspect.getmembers(self.brain) if not name.startswith("__") and isinstance(getattr(self.brain,name),ExpParas) and getattr(self.brain,name).uniqueness == 3]:
+                        attr:ExpParas = getattr(self.brain,attr_name)
+                        if attr.pre_fill is not None and attr.pre_fill != "":
+                            if attr.type.lower() in ['str','func']:
+                                file.write(f"   {attr.name} = ' {attr.pre_fill} '  # type in {attr.type} \n")
+                            else:
+                                file.write(f"   {attr.name} =  {attr.pre_fill}     # type in {attr.type} \n")
+                        else:
+                            if attr.type.lower() in ['str','func']:
+                                file.write(f"   {attr.name} = '  '  # type in {attr.type} \n")
+                            else:
+                                file.write(f"   {attr.name} =       # type in {attr.type} \n")
 
-                if attr.message != "":
-                    file.write(f"   # {attr.message}\n")
-                file.write("\n")
+                        if attr.message != "":
+                            file.write(f"   # {attr.message}\n")
+                        file.write("\n")
+            else:
+                file.write(f"{OneshotUniqueVariableName} = {target_qs}  # type in list \n")
 
-        eyeson_print(f"ParameterSurvey had been assigned to you with the name '{self.exp_type}_{SurveyUniqueName}', ckeck this path:\n")
-        slightly_print(os.path.expanduser("~"))
+        eyeson_print("ParameterSurvey had been assigned to you at:")
+        slightly_print(f"{self.file_path}")
 
     def para_decoder(self,survey_path:str=None):
         
@@ -71,8 +89,8 @@ class Canvasser():
             toml_data = tomli.load(file)
 
         self.exp_type = os.path.split(survey_path)[-1].split("_")[0]
-        self.brain = self.__callExp__()
-        print(self.brain)
+        self.brain = self.__callExp__(decode=True)
+        
         #! Get parameters
         assigned_paras = {}
         for section, attributes in toml_data.items():
