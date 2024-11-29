@@ -100,6 +100,7 @@ class Canvasser():
 
         # make parameters dependence  
         joint_qbs = [name for name in assigned_paras if name not in dir(self.brain)] # ExpParas.name not in self.brain.attributes
+        slightly_print("=============================")
         print("measure qs: ",joint_qbs)
         self.assigned_paras = {}
         if len(joint_qbs) > 0:
@@ -112,10 +113,10 @@ class Canvasser():
             
         self.assigned_paras.update(assigned_paras) # completed
         # check paras:
-        print("Para Check:")
+        slightly_print("Para Check:")
         for item in self.assigned_paras:
             print(item,": ",self.assigned_paras[item])
-
+        slightly_print("=============================")
     
     def config_decoder(self,machine_type:str,config_path:str)->list:
         """ Remember: config_path is a folder ! """

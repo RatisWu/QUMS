@@ -783,7 +783,7 @@ class XYFcalibrator(ExpSpirit):
             case 'qblox':
                 from qblox_drive_AS.support.ExpFrames import XYFcali
                 self.EXP = XYFcali(QD_path=self.connections[0],data_folder=self.save_data_folder,JOBID=self.JOBID)
-                self.EXP.SetParameters( self.target_qs, self.time_range[self.target_qs[0]][-1],10e6,self.avg_n,execution=True)
+                self.EXP.SetParameters( self.target_qs, self.time_range[self.target_qs[0]][-1],self.avg_n,execution=True)
                 self.EXP.WorkFlow()
                 eyeson_print("Raw data located:")
                 slightly_print(self.EXP.RawDataPath)
