@@ -264,6 +264,7 @@ class DressedCavityFit(ExpSpirit):
                 config_folder = queue_out_items["Configs"]   # Association.TrafficBureau.Queuer.QueueOut()
                 data_file = queue_out_items["Data"]
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
+                print(f"QD @ {QD_path}")
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
 
 # S3
@@ -680,7 +681,7 @@ class CPMG(ExpSpirit):
 
     def set_variables(self):
         self.time_range = ExpParas("time_range","list",3,message="evolution time span. rule: [start, end] like: [0, 20e-6].")
-        self.pi_num = ExpParas("pi_num","int",3,message="how many pi-pulses between your Ramsey ?")
+        self.pi_num = ExpParas("pi_num","int",2,message="how many pi-pulses between your Ramsey ?")
         # self.OSmode = ExpParas("OSmode","int",1,message="booling value set 0 for False or 1 for True, Use one-shot or not ?")
         self.avg_n = ExpParas("avg_n","int",1,pre_fill=300)
         self.time_sampling_func = ExpParas("time_sampling_func","func",1,message="sampling function options: 'linspace', 'arange', 'logspace'.",pre_fill='linspace')
@@ -697,8 +698,12 @@ class CPMG(ExpSpirit):
         match self.machine_type.lower():
             case 'qblox':
                 from qblox_drive_AS.support.ExpFrames import CPMG
+                pi_num = {}
+                for q in self.target_qs:
+                    pi_num[q] = self.pi_num
+
                 self.EXP = CPMG(QD_path=self.connections[0],data_folder=self.save_data_folder,JOBID=self.JOBID)
-                self.EXP.SetParameters( self.time_range, self.pi_num, self.time_sampling_func,self.time_ptsORstep, self.histo_counts,self.avg_n,execution=True)
+                self.EXP.SetParameters( self.time_range, pi_num, self.time_sampling_func,self.time_ptsORstep, self.histo_counts,self.avg_n,execution=True)
                 self.EXP.WorkFlow()
                 eyeson_print("Raw data located:")
                 slightly_print(self.EXP.RawDataPath)
@@ -768,7 +773,7 @@ class XYFcalibrator(ExpSpirit):
         return "C1"
 
     def set_variables(self):
-        self.time_range = ExpParas("time_range","list",3,message="If the fitting is not good, you can shorten it.",pre_fill="[0, 0.3e-6]")
+        self.time_range = ExpParas("time_range","list",3,message="If the fitting is not good, you can shorten it.",pre_fill="[0, 1e-6]")
         # self.OSmode = ExpParas("OSmode","int",1,message="booling value set 0 for False or 1 for True, Use one-shot or not ?")
         self.avg_n = ExpParas("avg_n","int",1,pre_fill=500)
 
@@ -783,7 +788,7 @@ class XYFcalibrator(ExpSpirit):
             case 'qblox':
                 from qblox_drive_AS.support.ExpFrames import XYFcali
                 self.EXP = XYFcali(QD_path=self.connections[0],data_folder=self.save_data_folder,JOBID=self.JOBID)
-                self.EXP.SetParameters( self.target_qs, self.time_range[self.target_qs[0]][-1],self.avg_n,execution=True)
+                self.EXP.SetParameters( self.target_qs, self.time_range[self.target_qs[0]][-1],avg_n=self.avg_n,execution=True)
                 self.EXP.WorkFlow()
                 eyeson_print("Raw data located:")
                 slightly_print(self.EXP.RawDataPath)
@@ -970,6 +975,10 @@ class halfPIampCalibrator(ExpSpirit):
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
 
+#TODO C6
+class DragCoefCali():
+    pass
+
 # A1
 class ZgateRelaxation(ExpSpirit):
     def __init__(self):
@@ -1031,7 +1040,7 @@ class TimeMonitor(ExpSpirit):
         self.time_sampling_func = ExpParas("time_sampling_func","func",1,message="sampling function options: 'linspace', 'arange', 'logspace'.",pre_fill='linspace')
         self.time_ptsORstep = ExpParas("time_ptsORstep","int",1,message="Depends on sampling func set in step or pts.",pre_fill=100)
         # self.OSmode = ExpParas("OSmode","int",1,message="booling value set 0 for False or 1 for True, Use one-shot or not ?")
-        self.echo_pi_num = ExpParas("echo_pi_num","int",3,message="How many pi-pulse between Ramsey ? 0 for Ramsey T2, 1 for SpinEcho T2, more for CPMG.",pre_fill=1)
+        self.echo_pi_num = ExpParas("echo_pi_num","int",2,message="How many pi-pulse between Ramsey ? 0 for Ramsey T2, 1 for SpinEcho T2, more for CPMG.",pre_fill=0)
         self.small_detune = ExpParas("small_detune","float",1,message="Only while doing Ramsey, how many driving detuning ? otherwise set None",pre_fill=0)
         self.OS_shots = ExpParas("OS_shots","int",1,message="Shot number for OneSoht exp. If you don't wanna do OneShot leave it 0.",pre_fill=10000)
 
@@ -1045,29 +1054,33 @@ class TimeMonitor(ExpSpirit):
         match self.machine_type.lower():
             case 'qblox':
                 from qblox_drive_AS.support.ExpFrames import QubitMonitor
+
+                self.EXP = QubitMonitor(QD_path=self.connections[0],save_dir=self.save_data_folder)
+                # T1 settings
+                self.EXP.T1_time_range = {}
                 for q in self.T1_time_range:
-                    if len(self.T1_time_range[q]) == 0:
-                        del self.T1_time_range[q]
-                for q in self.T2_time_range:
-                    if len(self.T2_time_range[q]) == 0:
-                        del self.T2_time_range[q]
-                for q in self.echo_pi_num:
-                    if len(self.echo_pi_num[q]) == 0:
-                        del self.echo_pi_num[q]
-                self.OS_target_qs = list(self.T1_time_range.keys())+list(self.T2_time_range.keys())
-                self.EXP = QubitMonitor(QD_path=self.connections[0],data_folder=self.save_data_folder)
-                self.EXP.T1_time_range = self.T1_time_range # skip if empty.
+                    if len(self.T1_time_range[q]) != 0:
+                        self.EXP.T1_time_range[q] = self.T1_time_range[q]
                 # T2 settings
-                self.EXP.T2_time_range = self.T1_time_range # skip if empty.
-                self.EXP.echo_pi_num = self.echo_pi_num
+                self.EXP.T2_time_range = {}
+                for q in self.T2_time_range:
+                    if len(self.T2_time_range[q]) != 0:
+                        self.EXP.T2_time_range[q] = self.T2_time_range[q]
                 self.EXP.a_little_detune_Hz = self.small_detune  # for all qubit in T2_time_range. Set None if you do SpinEcho or CPMG
+                self.EXP.echo_pi_num = self.echo_pi_num
                 # SingleShot settings, skip if 0 shot
                 self.EXP.OS_shots = self.OS_shots     
-                self.EXP.OS_target_qs = self.OS_target_qs
+                self.EXP.OS_target_qs = list(set(list(self.EXP.T1_time_range.keys())+list(self.EXP.T2_time_range.keys())))
                 # T1, T2 shared settings
                 self.EXP.time_sampling_func =  self.time_sampling_func
                 self.EXP.time_ptsORstep = self.time_ptsORstep
                 self.EXP.AVG = self.avg_n
+
+                print("T1: ",self.EXP.T1_time_range)
+                print("T2: ",self.EXP.T2_time_range)
+                print("OS: ",self.EXP.OS_target_qs)
+
+
                 self.EXP.StartMonitoring() # while loop
 
 
@@ -1082,7 +1095,46 @@ class TimeMonitor(ExpSpirit):
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.TimeMonitor_analysis(New_QD_path=QD_path,New_data_file=data_file)
 
+#TODO R1b
+class GatePhaErrorEstim(ExpSpirit):
+    def __init__(self):
+        super().__init__()
+            
+    def get_ExpLabel(self)->str:
+        return "R1b"
 
+    def set_variables(self):
+        self.MaxGate_num = ExpParas("MaxGate_num","int",2,message="The maximum gate number to apply.",pre_fill=350)
+        self.OneShot_shots = ExpParas("OneShot_shots","int",1,message="SingleShot total shots.",pre_fill=10000)
+        self.use_uncali_waveform = ExpParas("use_uncali_waveform","int",1,message="booling value set 0 for False or 1 for True, if True won't use calibrated Drag coef.",pre_fill=0)
+        # self.OSmode = ExpParas("OSmode","int",1,message="booling value set 0 for False or 1 for True, Use one-shot or not ?")
+        # self.avg_n = ExpParas("avg_n","int",1,pre_fill=300)
+
+    def provide_ExpSurveyInfo(self):
+        self.set_variables()
+
+
+    def start_measurement(self):
+        match self.machine_type.lower():
+            case 'qblox':
+                from qblox_drive_AS.support.ExpFrames import XGateErrorTest
+                self.EXP = XGateErrorTest(QD_path=self.connections[0],data_folder=self.save_data_folder,JOBID=self.JOBID)
+                self.EXP.SetParameters( self.target_qs, self.OneShot_shots, self.MaxGate_num, execution=True, use_untrained_wf=self.use_uncali_waveform)
+                self.EXP.WorkFlow()
+                eyeson_print("Raw data located:")
+                slightly_print(self.EXP.RawDataPath)
+
+            
+    
+    def start_analysis(self,analysis_need:dict=None,*args):
+        """ Wait calling from Conductor.Executor """
+        match self.machine_type.lower():
+            case 'qblox':
+                queue_out_items = analysis_need
+                config_folder = queue_out_items["Configs"]   # Association.TrafficBureau.Queuer.QueueOut()
+                data_file = queue_out_items["Data"]
+                QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
+                self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
 
 
 

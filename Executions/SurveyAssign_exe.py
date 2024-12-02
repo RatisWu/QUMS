@@ -20,19 +20,20 @@ S6 : Time Rabi Oscillation  #! qblox test okay
 S7 : Single Shot   #! qblox test okay
 S8 : Ramsey T2   #! qblox test okay
 S9 : Spin Echo T2   #! qblox test okay
-S9b: CPMG (Qblox only)
+S9b: CPMG (Qblox only)   #! qblox test okay
 S10: T1   #! qblox test okay
 
 -------- AuxiliaryMeas -------
-A1 : Zgate T1
-A2 : Time Monitor
+A1 : Zgate T1   #! qblox test okay
+A2 : Time Monitor  #! qblox test okay
 
 -------- Calibrations --------
 C1 : XYF calibration   #! qblox test okay
-C2 : ROF calibration
-C3 : ROL calibration
-C4 : Pi-amp calibration
-C5 : half Pi-amp calibration
+C2 : ROF calibration   #! qblox test okay
+C3 : ROL calibration   #! qblox test okay
+C4 : Pi-amp calibration  #! qblox test okay
+C5 : half Pi-amp calibration  #! qblox test okay
+C6 : Drag coef Calibration
 
 -------- 2Q operation --------
 T1M: i-SWAP (QM only)
@@ -40,7 +41,9 @@ T2M: CZ-chevron (QM only)
 
 --------      RB      --------  
 R1M: 1Q Randomized Benchmarking (QM only)
+R1b: Gate phase error estimation (Qblox) 
 R2M: 2Q Randomized Benchmarking (QM only)
+
 
 """
 
@@ -48,7 +51,7 @@ R2M: 2Q Randomized Benchmarking (QM only)
 ####    Generation Eequirements    ####
 #######################################
 
-What_exp_tag:str = 'S7'
+What_exp_tag:str = 'r1b'
 What_qubits_join:list = ['q0','q1']
 creat_survey_in_this_folder:str = ""
 

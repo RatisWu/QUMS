@@ -3,6 +3,7 @@ from Association.FBI import Canvasser
 from Association.Soul import ExpSpirit
 
 
+
 class Executor():
     
     def __init__(self,machine_type:str,survey_path:str,configs_path:str):
@@ -20,6 +21,7 @@ class Executor():
         parameters = self.Survey.assigned_paras
         for para_name in parameters :
             setattr(self.Exp, para_name, parameters[para_name])
+        
 
         
     def __ExpExecutes__(self, *args, **kwargs):

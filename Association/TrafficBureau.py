@@ -50,8 +50,8 @@ class Queuer():
         Config = [os.path.join(user_dep_config_folder,name) for name in os.listdir(user_dep_config_folder) if (os.path.isdir(os.path.join(user_dep_config_folder,name)) and ConfigUniqueName.lower() in name.lower())]
         Survey = [os.path.join(user_dep_config_folder,name) for name in os.listdir(user_dep_config_folder) if (os.path.isfile(os.path.join(user_dep_config_folder,name)) and SurveyUniqueName in name and name.split(".")[-1] == 'toml')][0]
         self.Identity = [os.path.join(user_dep_config_folder,name) for name in os.listdir(user_dep_config_folder) if (os.path.isfile(os.path.join(user_dep_config_folder,name)) and IdentityUniqueName == name.split(".")[0])][0]
-        
-        if os.path.split(Survey)[-1].split("_")[0].upper() == "S0":
+        self.exp_type = os.path.split(Survey)[-1].split("_")[0].upper()
+        if self.exp_type == "S0":
             self.Requirements:dict = {"Survey_path":Survey}
             self.EnforcedQueueOut = True
         else:

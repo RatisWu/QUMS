@@ -15,9 +15,9 @@ class Canvasser():
 
     def __callExp__(self,decode:bool=False):
         page = [name for name, obj in inspect.getmembers(Exp_Encyclopedia,inspect.isclass) if owned_attribute(obj,"get_ExpLabel") and name != "ExpSpirit"] 
-        method = [getattr(Exp_Encyclopedia,exp)() for exp in page if getattr(getattr(Exp_Encyclopedia,exp)(),"get_ExpLabel")() == self.exp_type][0]
+        method = [getattr(Exp_Encyclopedia,exp)() for exp in page if getattr(getattr(Exp_Encyclopedia,exp)(),"get_ExpLabel")().lower() == self.exp_type.lower()][0]
         if decode:
-            if self.exp_type.lower() == "s7":
+            if self.exp_type.lower() in ["s7","r1b"]:
                 setattr(method,OneshotUniqueVariableName,[])  # method.target_qs = []
         return method
             
@@ -57,7 +57,7 @@ class Canvasser():
                     file.write(f"# {attr.message}\n")
                 file.write("\n")
             # most unique parameters
-            if self.exp_type.lower() != "s7":
+            if self.exp_type.lower() not in ["s7","r1b"]:
                 for target in target_qs:
                     file.write(f'[{target}]\n')    
                     for attr_name in [name for name, _ in inspect.getmembers(self.brain) if not name.startswith("__") and isinstance(getattr(self.brain,name),ExpParas) and getattr(self.brain,name).uniqueness == 3]:
@@ -100,7 +100,7 @@ class Canvasser():
 
         # make parameters dependence  
         joint_qbs = [name for name in assigned_paras if name not in dir(self.brain)] # ExpParas.name not in self.brain.attributes
-        slightly_print("=============================")
+        slightly_print("==================")
         print("measure qs: ",joint_qbs)
         self.assigned_paras = {}
         if len(joint_qbs) > 0:
@@ -113,10 +113,10 @@ class Canvasser():
             
         self.assigned_paras.update(assigned_paras) # completed
         # check paras:
-        slightly_print("Para Check:")
+        print("Para Check:")
         for item in self.assigned_paras:
             print(item,": ",self.assigned_paras[item])
-        slightly_print("=============================")
+        slightly_print("==================")
     
     def config_decoder(self,machine_type:str,config_path:str)->list:
         """ Remember: config_path is a folder ! """

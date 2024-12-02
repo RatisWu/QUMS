@@ -10,7 +10,8 @@ beta_test:bool = 0       # bypass connecting to machine
 Supervisor = Queuer()
 Supervisor.QueueIn()
 SampleName = Supervisor.sample_name
-
+EXP_tag = Supervisor.exp_type
+slightly_print(f"{EXP_tag} executing ...")
 try:
     if not Supervisor.EnforcedQueueOut:
         Worker = Executor(Supervisor.machine_system, Supervisor.program_requirements["Survey_path"],  Supervisor.program_requirements["Config_path"])
@@ -27,9 +28,14 @@ try:
                 Worker.__ExpResultsAnalyzes__(ana_need_items=items)
             highlight_print(f"Measurement Complete! check the JobID: {Supervisor.readableJOBID}")
 
-except Exception as err:
-    Supervisor.QueueOutUrgently()
-    warning_print(f"When executed the requests got the error: {err}")
+except BaseException as err:
+    if EXP_tag not in ["A1","A2"]:
+        Supervisor.QueueOutUrgently()
+        warning_print(f"When executed the requests got the error: {err}")
+    else:
+        items = Supervisor.QueueOut()
+        print(f"{EXP_tag} measurement had been manually closed and normally queued out !")
+    
     traceback.print_exc()
 
     
