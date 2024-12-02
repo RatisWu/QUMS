@@ -18,7 +18,7 @@ class SampleRegister():
         return "S0"
 
     def provide_ExpSurveyInfo(self):
-        self.Instrument_IP = ExpParas("Machine_IP","str",1)
+        self.Machine_IP = ExpParas("Machine_IP","str",1)
         self.cool_down_date = ExpParas("cool_down_date","str",1)
         self.cool_down_dr = ExpParas("cool_down_dr","str",1)
         self.sample_name = ExpParas("sample_name","str",1)

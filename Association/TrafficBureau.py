@@ -52,6 +52,7 @@ class Queuer():
         self.Identity = [os.path.join(user_dep_config_folder,name) for name in os.listdir(user_dep_config_folder) if (os.path.isfile(os.path.join(user_dep_config_folder,name)) and IdentityUniqueName == name.split(".")[0])][0]
         self.exp_type = os.path.split(Survey)[-1].split("_")[0].upper()
         if self.exp_type == "S0":
+            print("!!!!!!",Survey)
             self.Requirements:dict = {"Survey_path":Survey}
             self.EnforcedQueueOut = True
         else:
@@ -99,7 +100,7 @@ class Queuer():
                 
         else:
             self.program_requirements = self.__Interchanges__()
-            
+            return self.program_requirements
 
     def QueueOut(self)->dict:
         # step_1 check this sample had been created a folder today
