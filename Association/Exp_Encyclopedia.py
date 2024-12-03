@@ -976,8 +976,47 @@ class halfPIampCalibrator(ExpSpirit):
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
 
 #TODO C6
-class DragCoefCali():
-    pass
+class DragCoefCali(ExpSpirit):
+    def __init__(self):
+        super().__init__()
+            
+    def get_ExpLabel(self)->str:
+        return "C6"
+
+    def set_variables(self):
+        self.drag_coef_range = ExpParas("drag_coef_range","list",3,message=" DRAG coef, rule: [start, end].",pre_fill=[-2,2])
+        self.coef_ptsORstep = ExpParas("coef_ptsORstep","int",1,message="qblox set pts",pre_fill=50)
+        # self.OSmode = ExpParas("OSmode","int",1,message="booling value set 0 for False or 1 for True, Use one-shot or not ?")
+        self.avg_n = ExpParas("avg_n","int",1,pre_fill=300)
+
+    def provide_ExpSurveyInfo(self):
+        self.set_variables()
+
+
+    def start_measurement(self):
+
+        self.target_qs = list(self.drag_coef_range.keys())
+        match self.machine_type.lower():
+            case 'qblox':
+                from qblox_drive_AS.support.ExpFrames import DragCali
+                self.EXP = DragCali(QD_path=self.connections[0],data_folder=self.save_data_folder,JOBID=self.JOBID)
+                self.EXP.SetParameters( self.drag_coef_range, 'linspace', self.coef_ptsORstep,self.avg_n,execution=True)
+                self.EXP.WorkFlow()
+                eyeson_print("Raw data located:")
+                slightly_print(self.EXP.RawDataPath)
+
+            
+    
+    def start_analysis(self,analysis_need:dict=None,*args):
+        """ Wait calling from Conductor.Executor """
+        match self.machine_type.lower():
+            case 'qblox':
+                queue_out_items = analysis_need
+                config_folder = queue_out_items["Configs"]   # Association.TrafficBureau.Queuer.QueueOut()
+                data_file = queue_out_items["Data"]
+                QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
+                self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
+
 
 # A1
 class ZgateRelaxation(ExpSpirit):

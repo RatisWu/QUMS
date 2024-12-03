@@ -33,7 +33,7 @@ C2 : ROF calibration   #! qblox test okay
 C3 : ROL calibration   #! qblox test okay
 C4 : Pi-amp calibration  #! qblox test okay
 C5 : half Pi-amp calibration  #! qblox test okay
-C6 : Drag coef Calibration
+C6 : Drag coef Calibration  #! qblox test okay
 
 -------- 2Q operation --------
 T1M: i-SWAP (QM only)
@@ -41,7 +41,7 @@ T2M: CZ-chevron (QM only)
 
 --------      RB      --------  
 R1M: 1Q Randomized Benchmarking (QM only)
-R1b: Gate phase error estimation (Qblox) 
+R1b: Gate phase error estimation (Qblox)  #! qblox test okay
 R2M: 2Q Randomized Benchmarking (QM only)
 
 
