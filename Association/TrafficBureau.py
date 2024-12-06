@@ -49,25 +49,31 @@ class Queuer():
     def __TouchConfigNPara__(self)->dict:
         Config = [os.path.join(user_dep_config_folder,name) for name in os.listdir(user_dep_config_folder) if (os.path.isdir(os.path.join(user_dep_config_folder,name)) and ConfigUniqueName.lower() in name.lower())]
         Survey = [os.path.join(user_dep_config_folder,name) for name in os.listdir(user_dep_config_folder) if (os.path.isfile(os.path.join(user_dep_config_folder,name)) and SurveyUniqueName in name and name.split(".")[-1] == 'toml')][0]
-        self.Identity = [os.path.join(user_dep_config_folder,name) for name in os.listdir(user_dep_config_folder) if (os.path.isfile(os.path.join(user_dep_config_folder,name)) and IdentityUniqueName == name.split(".")[0])][0]
+        
         self.exp_type = os.path.split(Survey)[-1].split("_")[0].upper()
         if self.exp_type == "S0":
             print("!!!!!!",Survey)
             self.Requirements:dict = {"Survey_path":Survey}
             self.EnforcedQueueOut = True
         else:
+            self.Identity = [os.path.join(user_dep_config_folder,name) for name in os.listdir(user_dep_config_folder) if (os.path.isfile(os.path.join(user_dep_config_folder,name)) and IdentityUniqueName == name.split(".")[0])][0]
             if len(Config) >= 1:
                 self.Requirements:dict = {"Config_path":Config[0],"Survey_path":Survey}
             else:
                 raise ValueError("Can't see any ExpConfigs folder")
     
     def __JOBIDLabels__(self):
-        with open(self.Identity, "r") as file:
-            ID_card = json.load(file)
-
-        self.sample_name = str(ID_card["Sample Name"]).replace(" ","")
-        self.machine_IP = str(ID_card["Machine Address"]).replace(" ","")
-            
+        if not self.EnforcedQueueOut:
+            with open(self.Identity, "r") as file:
+                ID_card = json.load(file)
+                self.sample_name = str(ID_card["Sample Name"]).replace(" ","")
+                self.machine_IP = str(ID_card["Machine Address"]).replace(" ","")
+        else:
+            with open(self.Requirements["Survey_path"], "rb") as file:
+                ID_card = tomli.load(file)
+                self.sample_name = str(ID_card["sample_name"]).replace(" ","")
+                self.machine_IP = str(ID_card["Machine_IP"]).replace(" ","")
+        
         self.machine_system:str = self.ip_table[self.machine_IP]
         self.queue:str = os.path.join(queue_folder,self.machine_IP.replace(".","_"))
 

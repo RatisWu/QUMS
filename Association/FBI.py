@@ -23,7 +23,7 @@ class Canvasser():
             
         
     def generate_ExpParas_servey(self,exp_type:str,target_qs:list,generate_2_this_folder:str=''):
-        self.exp_type = exp_type
+        self.exp_type = exp_type.upper()
         # Get all attributes of the class excluding built-in ones
         if generate_2_this_folder == "":
             self.file_path=os.path.join(os.path.expanduser("~"),f"{self.exp_type}_{SurveyUniqueName}.toml")
