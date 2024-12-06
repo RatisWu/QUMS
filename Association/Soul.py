@@ -1,164 +1,101 @@
 from numpy import ndarray
 from types import FunctionType
-from abc import abstractmethod
+from abc import ABC, abstractmethod
+import inspect
 
-def empty_func():FunctionType
-
-class Exp_Encyclopedia():
-    def __init__(self,exp_type:str,machine_type:str=None):
-        """
-        exp_type should be in the following:\n
-            S0. MeasInitializer
-            S1. BroadBandCS,
-            S2. ZoomCS,
-            S3. PowerCavity,
-            S4. FluxCavity,
-            S5. Conti2Tone,
-            S6. FluxQubit,
-            S7. Rabi,
-            S8. OneShot,
-            S9. T2,
-            S10. T1,
-            ----------------
-            C1. ROFcali,
-            C2. XYFcali,
-            C3. PIampcali,
-            C4. HalfPIcali,
-            ----------------
-            A1. TimeMonitor,
-            A2. ZgateT1
-        """
-        self.__SurveyUniqueName__:str = "ExpParasSurvey"
-        
-        self.__machine_type__ = machine_type
-        self.__exp__ = exp_type.lower()
-        self.__expVarable_Reminder__()
-        self.__shared_attr__ = ["avg_n", "machine_IP", "list_sampling_func"] # importanat 
-
-    def __setMeasInit__(self):
-        self.Instrument_IP:str = "" 
-        self.how_many_couplers:int = 0
-        self.how_many_qubits:int = 0
-        self.cool_down_date:str = ""
-        self.cool_down_dr:str = ""
-        self.sample_name:str = ""
-        self.chip_type:str = ""
-
-    def __setMachineIP__(self):
-        """ `<class, 'str'>`, Single value """
-        self.machine_IP:str = ""
-
-    def __setExpAVGn__(self):
-        """ `<class, 'int'>`,  Single fixed value """
-        self.avg_n:int = 0
-
-    def __setFreqRange__(self):
-        """ `<class, 'list'>`,  rule: [freq_start, freq_end, freq_pts], or a single value inside a list like [4e9] """
-        self.freq_range = list([])
-    
-    def __setSamplingFunc__(self):
-        """ sampling function, `linspace` or `arange` from `numpy`"""
-        self.list_sampling_func:FunctionType = empty_func
-
-    def __expVarable_Reminder__(self):
-        match self.__exp__:
-            case "s0" | "init" | "measinitializer":
-                self.__setMeasInit__()
-
-            case "s1" | "broadbandcs" | "bbcs":
-                self.__setMachineIP__()
-                self.__setSamplingFunc__()
-                self.__setFreqRange__()
-                self.__setExpAVGn__()
-                if self.__machine_type__ is not None:
-                    match self.__machine_type__.lower():
-                        case 'qblox':
-                            self.__ro_elements_coords__:dict = {"layer":2,"1F":{"name":"joint_qbs","value":"2F"},"2F":[{"name":"freq_samples","value":"freq_range"}]} # The value in "2F" shoud exist in the ExpParasSurvey.toml 
-                            self.__bias_elements_coords__:dict = {}
-                        case 'qm':
-                            pass
-                
-            case "s2" | "cs" | "zoomcs":
-                self.__setMachineIP__()
-                self.__setFreqRange__()
-                self.__setExpAVGn__()
-
-    def __CoordsDecode__(self,coordsProtocol:dict,joint_qbs:list,function:callable=None,**kwargs):
-        result = {}
-        layer_2_configs = coordsProtocol["2F"]
-    
-        for qb in joint_qbs:
-            result[qb] = {}
-
-            for config in layer_2_configs:
-                field_name = config["name"]
-                variable_name = config["value"]
-
-                if variable_name in kwargs:
-                    result[qb][field_name] = kwargs[variable_name][qb] if type(kwargs[variable_name][qb]) != list else function(kwargs[variable_name][qb])
-                else:
-                    raise KeyError(f"Missing the variable {variable_name} for layer '2F' in kwargs !")
-            
-        return result  
-
-
-
-class ExpSpirit():
+# Exp framework
+class ExpSpirit(ABC):
     def __init__(self):
-        self.set_variables()
-        self.ro_elements, self.machine_type = "", ""# FBI.decode()
-        self.set_pulseSchedule()
-        self.set_analysis()
+        self.save_data_folder:int = ""
+        self.machine_type:str = ""
+        self.connections:list = []
+        self.JOBID:str = ""
+        self.provide_ExpSurveyInfo()
 
+    @abstractmethod
+    def get_ExpLabel(self,*args)->str:
+        ''' Return the exp label "S1", "S2", ... '''
+        pass
+    
+    @abstractmethod
+    def provide_ExpSurveyInfo(self,*args):
+        """ Let FBI.Canvasser know what parameters for measurement should be in the ExpParasSurvey.toml """
+        pass
+    
     @abstractmethod
     def set_variables(self,*args):
+        """ What is the parameters for this measurement ? Set them in attributes. """
+        pass
+
+
+    @abstractmethod
+    def start_measurement(self,system:str,*args):
+        """ After connceted to the machine, prepare and run the pulse schedule and get the exp raw data. """
         pass
 
     @abstractmethod
-    def set_pulseSchedule(self,system:str,*args):
+    def start_analysis(self,*args):
+        """ Have raw data, analyze it here. """
         pass
 
-    @abstractmethod
-    def set_analysis(self,*args):
+    def workflow(self,hardware_info:dict):
+        """ Good looking """
         pass
 
+# Exp parameter type
+class ExpParas():
+    def __init__(self,name:str,custom_type:str,uniqueness:int=1,message:str="",pre_fill:str=None):
+        """
+        Level your exp parameters. Because in your measurement the exp parameters have different works, some are shared with every qubits, 
+        another are exp variables but keep same between different qubits, the other are exactly unique for qubit.
 
-class S0_MeasInit():
-    def __init__(self):
-        self.Instrument_IP:str = "" 
-        self.how_many_couplers:int = 0
-        self.how_many_qubits:int = 0
-        self.cool_down_date:str = ""
-        self.cool_down_dr:str = ""
-        self.sample_name:str = ""
-        self.chip_type:str = ""
+        ### Parameters:
+        - name (`str`): The name of this parameter, will be shown on ExpParasSurvey. Please keep it the same as the attribute name in Exp_Encyclopedia.
+        - uniqueness (`int`): Specifying how unique is this parameter for the qubits.\n
+         - uniqueness = 1 (common), for the parameter which is (1) **NOT** a exp-variable and (2) keeps the same for all qubits in this measurement, Ex. `avg_n`\n 
+         - uniqueness = 2 (middle), for the parameter which is (1) a exp-variable and (2) keeps the same for all qubits in this measurement, Ex. `bias` when FluxCavity \n 
+         - uniqueness = 3 (unique), for the parameter which is (1) a exp-variable and (2) **totally different** for all qubits in this measurement, Ex. `freq` when FluxCavity \n
+        - custom_type (`str`): Makes user know what type to fill into the questions for ExpParasSurvey, common python type like [str, int, list, function, ...] is supported.
+        
+        ### Attributes:
+            1. self.uniqueness, return the uniqueness of it.
+            2. self.value, return the name of it. 
+            3. self.readable, helps program know where the PulseSchedule needs it, **Only** for uniqueness= 2 or 3 parameters.
+                -- for those which can be translated to readable it should includes the following keywords: ["freq", "power", "bias", "z_amp", "time", "shots"].
+        
+        ### Raises:
+        - **ValueError**: If uniqueness is higher than 3. 
+        """
 
-
-class S1_CS(ExpSpirit):
-    def __init__(self):
-        super().__init__()
-        self.workflow()
-
-
-    def set_variables(self):
-        self.freq_range = list([])
+        self.name:str = name
+        self.pre_fill:str = pre_fill
+        self.type:str = custom_type
+        self.uniqueness:int = uniqueness
+        self.message:str = message
     
-
-    def set_pulseSchedule(self,):
-        match self.machine_type:
-            case qblox:
-                from A import B_ps, B_ana
-                self.raw_data = []
-
+    def __check_uniqueness__(self):
+        if int(self.uniqueness) > 4:
+            raise ValueError("Uniqueness must lower than or equal to 3 !")
+        
     
-    def set_analysis(self,*args):
-        fig = B_ana(self.raw_data)
+    def __giveProgramReadable__(self):
+        if self.uniqueness >= 2:
+            if "freq" in self.name.lower():
+                self.readable = "freq_samples"
+            elif "power" in self.name.lower():
+                self.readable = "power_samples"
+            elif "bias" in self.name.lower():
+                self.readable = "bias_samples"
+            elif "z_amp" in self.name.lower():
+                self.readable = "z_samples"
+            elif "time" in self.name.lower():
+                self.readable = "time_samples"
+            elif "sots" in self.name.lower():
+                self.readable = "shots"
+            else:
+                self.readable = "dummy_samples"
 
-    
-    def workflow(self):
-        self.set_variables()
-        self.ro_elements, self.machine_type = FBI.decode()
-        self.set_pulseSchedule()
-        self.set_analysis()
 
+
+  
 

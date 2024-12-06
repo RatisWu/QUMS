@@ -1,0 +1,8 @@
+# Measurement Parameters Survey for S0_SampleRegister 
+
+cool_down_date = ' 2024/11/12 ' # type in str 
+
+cool_down_dr = ' dr2 ' # type in str 
+
+sample_name = ' 5Q4C_Test ' # type in str 
+

@@ -1,36 +1,49 @@
 import os, tomli
-from Soul import Exp_Encyclopedia
-from Housekeeper import Maid
-from FBI import Canvasser
+from Association.FBI import Canvasser
+from Association.Soul import ExpSpirit
 
 
-class Coordinator(Exp_Encyclopedia):
+
+class Executor():
     
-    def __init__(self):
-       pass
+    def __init__(self,machine_type:str,survey_path:str,configs_path:str):
+       self.survey_path = survey_path
+       self.config_path = configs_path
+       self.machine_type = machine_type
+       self.Survey = Canvasser()
 
 
     def __ExpParasCollects__(self, *args, **kwargs):
-        Agent = Canvasser("_",[])
-        self.shared_settings, self.ro_elements, self.bias_elements = Agent.__toml_decoder__()
-        self.exp = Agent.exp_type
-        self.machine_IP:str = Agent.assigned_paras["machine_IP"]
-        self.intrument_type:str = Agent.exp_machine_type
+        self.Survey.para_decoder(self.survey_path)
+        self.Exp:ExpSpirit = self.Survey.brain
+        self.Exp.save_data_folder = os.path.split(self.survey_path)[0]
+        self.Exp.JOBID = os.path.split(self.survey_path)[-1].split("_")[-1].split(".")[0]
+        parameters = self.Survey.assigned_paras
+        for para_name in parameters :
+            setattr(self.Exp, para_name, parameters[para_name])
+        
 
+        
     def __ExpExecutes__(self, *args, **kwargs):
-        pass
+        self.Survey.config_decoder(self.machine_type,self.config_path)
+        self.Exp.machine_type = self.machine_type
+        self.Exp.connections = self.Survey.hardware_connections
+        self.Exp.start_measurement()
 
-    def __ExpResultsAnalyzes__(self, *args, **kwargs):
-        pass
+    def __ExpResultsAnalyzes__(self, ana_need_items:dict=None, *args, **kwargs):
+        self.Exp.start_analysis(analysis_need = ana_need_items)
 
-    def MeasWorkFlow(self):
+    def MeasWorkFlow(self,bypass:bool=False):
+        ''' Use arg `bypass` skip connecting to machine '''
         self.__ExpParasCollects__()
 
-        self.__ExpExecutes__()
+        if not bypass:
+            self.__ExpExecutes__()
 
-        self.__ExpResultsAnalyzes__()
+
 
 
 
 if __name__ == "__main__":
-    pass
+    CO = Executor("",r"C:\Users\ratis_wu\Documents\GitHub\UQMS\S1_ExpParasSurvey.toml","")
+    CO.__ExpParasCollects__()
