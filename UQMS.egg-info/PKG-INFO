@@ -16,6 +16,7 @@ Requires-Dist: quantify-scheduler==0.20.0
 Requires-Dist: qm-octave==1.2.0
 Requires-Dist: qm-qua==1.1.3
 Requires-Dist: qualang-tools==0.15.2
+Requires-Dist: netCDF4
 
 # UQMS
 United Quantum Measurement System, Integrate QM and Qblox software control and remote-able.

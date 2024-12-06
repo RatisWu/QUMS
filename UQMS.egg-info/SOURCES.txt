@@ -1,7 +1,6 @@
 README.md
 setup.py
 Association/Conductor.py
-Association/Court.py
 Association/ExclusiveNames.py
 Association/Exp_Encyclopedia.py
 Association/FBI.py
