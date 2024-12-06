@@ -14,8 +14,8 @@ setup(
         'qblox-instruments==0.12.0',
         'quantify-core==0.7.4',
         'quantify-scheduler==0.20.0',
-        'qm-octave==1.2.0',
-        'qm-qua==1.1.3',
+        'qm-octave==2.1.0',
+        'qm-qua==1.1.7',
         'qualang-tools==0.15.2',
         'netCDF4'
     ],
