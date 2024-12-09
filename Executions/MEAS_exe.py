@@ -26,7 +26,7 @@ try:
             # qblox queue out then analyze 
             if Supervisor.machine_system.lower() == 'qblox':
                 Worker.__ExpResultsAnalyzes__(ana_need_items=items)
-            highlight_print(f"Measurement Complete! check the JobID: {Supervisor.readableJOBID}")
+            highlight_print(f"Measurement Complete! data in the dir: {Supervisor.JOB_folder}")
 
 except BaseException as err:
     if EXP_tag not in ["A1","A2"]:
