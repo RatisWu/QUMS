@@ -1,9 +1,9 @@
 import os, sys
-machine_IP_table = "/home/UQMS/Server/ExpMachineIP/MachineIP_rec.toml"
+machine_IP_table = "/opt/UQMS/Server/Machines/MachineIP_rec.toml"
 
-queue_folder = "/home/UQMS/Server/ExpQueue"
-data_folder = "/home/UQMS/Server/ExpData"
-user_dep_config_folder = os.path.join(os.path.expanduser("~"),"MeasConfigs")
+queue_folder = "/opt/UQMS/Server/Queues"
+data_folder = "/opt/UQMS/Server/RawData"
+user_dep_config_folder = f"/home/{os.getlogin()}/MeasConfigs"
 
 for folder in [queue_folder,data_folder,user_dep_config_folder]:
     if not os.path.exists(folder):
