@@ -52,7 +52,6 @@ class Queuer():
         
         self.exp_type = os.path.split(Survey)[-1].split("_")[0].upper()
         if self.exp_type == "S0":
-            print("!!!!!!",Survey)
             self.Requirements:dict = {"Survey_path":Survey}
             self.EnforcedQueueOut = True
         else:
@@ -147,6 +146,41 @@ class Queuer():
                 item_to_analyze["Data"] = item_path
 
         return item_to_analyze
+    
+    def QueueCleaner(self,machine_ip:str):
+        """ Only for clean the queue, pack them to RawData """
+        # step_1 check this sample had been created a folder today
+        self.sample_name = "Orphans"
+        self.__JobIDAssigner__()
+        self.__CheckSampleTodayFolder__()
+        # step_2 create a folder for this measurement by this JOBID
+        self.JOB_folder = os.path.join(self.this_sample_today_folder,self.readableJOBID)
+        os.makedirs(self.JOB_folder,exist_ok=True)
+        
+        self.queue:str = os.path.join(queue_folder,machine_ip.replace(".","_"))
+        Config = [os.path.join(self.queue,name) for name in os.listdir(self.queue) if (os.path.isdir(os.path.join(self.queue,name)) and ConfigUniqueName.lower() in name.lower())][0]
+        self.machine_system = self.ip_table[machine_ip]
+        
+        # step_3 if qblox cp config to user_dep_folder
+        if self.machine_system.lower() == 'qblox':
+            # build a Updated_Configs folder to copy the QD file inside
+            updated_QD_folder = os.path.join(self.queue,f"copied_{ConfigUniqueName}")
+            
+            # Copy
+            shutil.copytree(Config,updated_QD_folder)
+
+            # move this folder back to user-dependent Config folder
+            shutil.move(updated_QD_folder, user_dep_config_folder)
+
+            # rename this config folder 
+            os.rename(os.path.join(user_dep_config_folder,f"copied_{ConfigUniqueName}"),os.path.join(user_dep_config_folder,f"qblox_{ConfigUniqueName}"))
+
+        # step_4 Move all the item in queue to the JOBID-folder, expected with: ExpConfigs folder (used), ExpParasSurvey.toml (used), EXP-results.nc and EXP-analysis.png
+        for item_path in [os.path.join(self.queue, name) for name in os.listdir(self.queue)]:
+            shutil.move(item_path, self.JOB_folder)
+        
+        highlight_print(f"Successfully clean Queue: {machine_ip.replace('.','_')} !")
+        slightly_print(f"Original data had been moved to dir: {self.JOB_folder}")
 
 
     def QueueOutUrgently(self):
