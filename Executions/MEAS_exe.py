@@ -32,11 +32,11 @@ except BaseException as err:
     if EXP_tag not in ["A1","A2"]:
         Supervisor.QueueOutUrgently()
         warning_print(f"When executed the requests got the error: {err}")
+        traceback.print_exc()
     else:
         items = Supervisor.QueueOut()
         print(f"{EXP_tag} measurement had been manually closed and normally queued out !")
     
-    traceback.print_exc()
-
+    
     
 
