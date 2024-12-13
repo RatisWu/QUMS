@@ -93,15 +93,13 @@ class Queuer():
     def QueueIn(self):
         # step_1 get in touch with the required data, ExpConfigs folder and ExpParasSurvey.toml are included
         self.__TouchConfigNPara__()
+        # step_2 Get JOB_ID for this EXP request
+        self.__JOBIDLabels__()
+
+        # step_3 Rename the requirements and move it into queue folder according to the machine address.
+        self.program_requirements = {}
 
         if not self.EnforcedQueueOut :
-            # step_2 Get JOB_ID for this EXP request
-            self.__JOBIDLabels__()
-
-            # step_3 Rename the requirements and move it into queue folder according to the machine address.
-            self.program_requirements = {}
-
-        
             for requirement in self.Requirements:
                 match requirement:
                     case "Config_path":
