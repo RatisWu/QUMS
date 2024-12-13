@@ -51,9 +51,9 @@ R2M: 2Q Randomized Benchmarking (QM only)
 ####    Generation Eequirements    ####
 #######################################
 
-What_exp_tag:str = 's1'
-What_qubits_join:list = ['q0','q1']
-creat_survey_in_this_folder:str = ""
+What_exp_tag:str = 's0'
+What_qubits_join:list = []
+creat_survey_in_this_folder:str = "/home/asqcmeas/MeasConfigs"
 
 # If you want run your customized meas script, fill the absolute path in
 # Make sure that the Meas obj in your script inherit the Association.Soul.ExpSpirits and also SCP it to 'MeasConfigs folder at server.

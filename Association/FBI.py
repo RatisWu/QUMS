@@ -43,8 +43,8 @@ class Canvasser():
         else:
             self.file_path=os.path.join(generate_2_this_folder,f"{self.exp_type}_{SurveyUniqueName}.toml")
 
-        if script_path is None:
-            script_path = ""
+        if script_path == "":
+            script_path = None
 
         self.brain = self.__callExp__(script_path=script_path)
         
