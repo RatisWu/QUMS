@@ -9,12 +9,13 @@ beta_test:bool = 0       # bypass connecting to machine
 
 Supervisor = Queuer()
 Supervisor.QueueIn()
-SampleName = Supervisor.sample_name
-EXP_tag = Supervisor.exp_type
-slightly_print(f"{EXP_tag} executing ...")
+
 try:
     if not Supervisor.EnforcedQueueOut:
-        Worker = Executor(Supervisor.machine_system, Supervisor.program_requirements["Survey_path"],  Supervisor.program_requirements["Config_path"])
+        SampleName = Supervisor.sample_name
+        EXP_tag = Supervisor.exp_type
+        slightly_print(f"{EXP_tag} executing ...")
+        Worker = Executor(Supervisor.machine_system, Supervisor.program_requirements["Survey_path"], Supervisor.program_requirements["Config_path"], Supervisor.program_requirements["Script_path"])
         Worker.MeasWorkFlow(beta_test)
         if beta_test:
             Supervisor.QueueOutUrgently()

@@ -51,10 +51,15 @@ R2M: 2Q Randomized Benchmarking (QM only)
 ####    Generation Eequirements    ####
 #######################################
 
-What_exp_tag:str = 'r1b'
+What_exp_tag:str = 's1'
 What_qubits_join:list = ['q0','q1']
 creat_survey_in_this_folder:str = ""
 
+# If you want run your customized meas script, fill the absolute path in
+# Make sure that the Meas obj in your script inherit the Association.Soul.ExpSpirits and also SCP it to 'MeasConfigs folder at server.
+# ONLY accept ONE .py file in that folder. Otherwise, it will enforce to queue out.
+developing_meas_path:str = ""
+
 
 Survey = Canvasser()
-Survey.generate_ExpParas_servey(What_exp_tag,What_qubits_join,creat_survey_in_this_folder)
+Survey.generate_ExpParas_servey(What_exp_tag,What_qubits_join,creat_survey_in_this_folder,developing_meas_path)

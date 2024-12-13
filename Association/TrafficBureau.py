@@ -49,7 +49,7 @@ class Queuer():
     def __TouchConfigNPara__(self)->dict:
         Config = [os.path.join(user_dep_config_folder,name) for name in os.listdir(user_dep_config_folder) if (os.path.isdir(os.path.join(user_dep_config_folder,name)) and ConfigUniqueName.lower() in name.lower())]
         Survey = [os.path.join(user_dep_config_folder,name) for name in os.listdir(user_dep_config_folder) if (os.path.isfile(os.path.join(user_dep_config_folder,name)) and SurveyUniqueName in name and name.split(".")[-1] == 'toml')][0]
-        
+        Script = [os.path.join(user_dep_config_folder,name) for name in os.listdir(user_dep_config_folder) if (os.path.isfile(os.path.join(user_dep_config_folder,name)) and name.split(".")[-1] == 'py')]
         self.exp_type = os.path.split(Survey)[-1].split("_")[0].upper()
         if self.exp_type == "S0":
             self.Requirements:dict = {"Survey_path":Survey}
@@ -57,7 +57,14 @@ class Queuer():
         else:
             self.Identity = [os.path.join(user_dep_config_folder,name) for name in os.listdir(user_dep_config_folder) if (os.path.isfile(os.path.join(user_dep_config_folder,name)) and IdentityUniqueName == name.split(".")[0])][0]
             if len(Config) >= 1:
-                self.Requirements:dict = {"Config_path":Config[0],"Survey_path":Survey}
+                if len(Script) == 1:
+                    self.Requirements:dict = {"Config_path":Config[0],"Survey_path":Survey, "Script_path":Script[0]}
+                elif len(Script) == 0:
+                    self.Requirements:dict = {"Config_path":Config[0],"Survey_path":Survey, "Script_path":None}
+                else:
+                    self.Requirements:dict = {"Config_path":Config[0],"Survey_path":Survey, "Script_path":None}
+                    self.EnforcedQueueOut = True
+                    eyeson_print(f"I see there is about {len(Script)} python scripts inside your MeasConfigs folder. Enforce it queue out because we don't know which scirpt to use ...")
             else:
                 raise ValueError("Can't see any ExpConfigs folder")
     
@@ -87,21 +94,29 @@ class Queuer():
         # step_1 get in touch with the required data, ExpConfigs folder and ExpParasSurvey.toml are included
         self.__TouchConfigNPara__()
 
-        # step_2 Get JOB_ID for this EXP request
-        self.__JOBIDLabels__()
-
-        # step_3 Rename the requirements and move it into queue folder according to the machine address.
-        self.program_requirements = {}
-
         if not self.EnforcedQueueOut :
+            # step_2 Get JOB_ID for this EXP request
+            self.__JOBIDLabels__()
+
+            # step_3 Rename the requirements and move it into queue folder according to the machine address.
+            self.program_requirements = {}
+
+        
             for requirement in self.Requirements:
                 match requirement:
                     case "Config_path":
                         JOBID_labeled_name = f"{os.path.split(self.Requirements['Config_path'])[-1]}{self.__JOBIDconnector__()}{self.JOBID}"
                     case "Survey_path":
                         JOBID_labeled_name = f"{os.path.split(self.Requirements['Survey_path'])[-1].split('.')[0]}{self.__JOBIDconnector__()}{self.JOBID}.toml"
-                shutil.move(self.Requirements[requirement],os.path.join(self.queue,JOBID_labeled_name))
-                self.program_requirements[requirement] = os.path.join(self.queue,JOBID_labeled_name)
+                if requirement == 'Script_path':
+                    if self.Requirements[requirement] is not None:
+                        shutil.move(self.Requirements[requirement],self.queue)
+                        self.program_requirements[requirement] = os.path.join(self.queue, os.path.split(self.Requirements[requirement])[-1])
+                    else:
+                        self.program_requirements[requirement] = None
+                else:
+                    shutil.move(self.Requirements[requirement],os.path.join(self.queue,JOBID_labeled_name))
+                    self.program_requirements[requirement] = os.path.join(self.queue,JOBID_labeled_name)
                 
         else:
             self.program_requirements = self.__Interchanges__()
@@ -192,8 +207,14 @@ class Queuer():
                     JOBID_erased_name = self.__JOBIDeraser__(os.path.split(self.program_requirements['Config_path'])[-1])
                 case "Survey_path":
                     JOBID_erased_name = f"{self.__JOBIDeraser__(os.path.split(self.program_requirements['Survey_path'])[-1].split('.')[0])}.toml"
+                
             # send back to user config folder
-            shutil.move(self.program_requirements[requirement],os.path.join(user_dep_config_folder,JOBID_erased_name))
+            if requirement == "Script_path":
+                if self.program_requirements['Script_path'] is not None: 
+                    JOBID_erased_name = os.path.split(self.program_requirements['Script_path'])[-1]
+                    shutil.move(self.program_requirements[requirement],os.path.join(user_dep_config_folder,JOBID_erased_name))
+            else:
+                shutil.move(self.program_requirements[requirement],os.path.join(user_dep_config_folder,JOBID_erased_name))
 
         # delete all the rest item in the queue
         for item in os.listdir(self.queue):
