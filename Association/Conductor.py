@@ -6,15 +6,16 @@ from Association.Soul import ExpSpirit
 
 class Executor():
     
-    def __init__(self,machine_type:str,survey_path:str,configs_path:str):
+    def __init__(self,machine_type:str,survey_path:str,configs_path:str,script_path:str=None):
        self.survey_path = survey_path
        self.config_path = configs_path
        self.machine_type = machine_type
+       self.script_path = script_path
        self.Survey = Canvasser()
 
 
     def __ExpParasCollects__(self, *args, **kwargs):
-        self.Survey.para_decoder(self.survey_path)
+        self.Survey.para_decoder(self.survey_path,self.script_path)
         self.Exp:ExpSpirit = self.Survey.brain
         self.Exp.save_data_folder = os.path.split(self.survey_path)[0]
         self.Exp.JOBID = os.path.split(self.survey_path)[-1].split("_")[-1].split(".")[0]
