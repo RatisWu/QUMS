@@ -20,20 +20,21 @@ try:
         if beta_test:
             Supervisor.QueueOutUrgently()
         else:
-            # qm analyze then queue out
-            if Supervisor.machine_system.lower() == 'qm':
-                Worker.__ExpResultsAnalyzes__()
-            items = Supervisor.QueueOut()
-            # qblox queue out then analyze 
-            if Supervisor.machine_system.lower() == 'qblox':
-                Worker.__ExpResultsAnalyzes__(ana_need_items=items)
+            items = Supervisor.QueueOut() # {"Data":[paths], "Config":path/to/folder}
+            Worker.__ExpResultsAnalyzes__(ana_need_items=items)
+
             highlight_print(f"Measurement Complete! data in the dir: {Supervisor.JOB_folder}")
 
 except BaseException as err:
     if EXP_tag not in ["A1","A2"]:
-        Supervisor.QueueOutUrgently()
-        warning_print(f"When executed the requests got the error: {err}")
-        traceback.print_exc()
+        if Supervisor.InQueueMark:
+            Supervisor.QueueOutUrgently()
+            warning_print(f"When executed the requests got the error: {err}")
+            traceback.print_exc()
+        else:
+            traceback.print_exc()
+            eyeson_print("This error is caught after queue out.")
+
     else:
         items = Supervisor.QueueOut()
         print(f"{EXP_tag} measurement had been manually closed and normally queued out !")

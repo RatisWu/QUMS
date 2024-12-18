@@ -29,7 +29,7 @@ class Canvasser():
         page = [name for name, obj in inspect.getmembers(Exp_Encyclopedia,inspect.isclass) if owned_attribute(obj,"get_ExpLabel") and name != "ExpSpirit"] 
         method = [getattr(Exp_Encyclopedia,exp)() for exp in page if getattr(getattr(Exp_Encyclopedia,exp)(),"get_ExpLabel")().lower() == self.exp_type.lower()][0]
         if decode:
-            if self.exp_type.lower() in ["s7","r1b"]:
+            if self.exp_type.lower() in ["s8","r1b"]:
                 setattr(method,OneshotUniqueVariableName,[])  # method.target_qs = []
             
         return method
@@ -47,52 +47,83 @@ class Canvasser():
             script_path = None
 
         self.brain = self.__callExp__(script_path=script_path)
+        if len(target_qs) == 0:
+            dependency = [1,2,3]
+        else:
+            dependency = [1,2]
         
         with open(self.file_path, "w") as file:
             file.write(f"# Measurement Parameters Survey for {self.brain.get_ExpLabel()}_{self.brain.__class__.__name__} \n")
             file.write(f"# *** Unit: Frequency (Hz), Time (s). \n\n")
             
             # common parameters
-            for attr_name in [name for name, _ in inspect.getmembers(self.brain) if not name.startswith("__") and isinstance(getattr(self.brain,name),ExpParas) and getattr(self.brain,name).uniqueness != 3]:
+            for attr_name in [name for name, _ in inspect.getmembers(self.brain) if not name.startswith("__") and isinstance(getattr(self.brain,name),ExpParas) and getattr(self.brain,name).uniqueness in dependency]:
                 attr:ExpParas = getattr(self.brain,attr_name)
-                match attr.uniqueness:
-                    case 1 | 2:
-                        if attr.pre_fill is not None and attr.pre_fill != "":
-                            if attr.type.lower() in ['str','func']:
-                                file.write(f"{attr.name} = ' {attr.pre_fill} '  # type in {attr.type} \n")
-                            else:
-                                file.write(f"{attr.name} =  {attr.pre_fill}     # type in {attr.type} \n")
-                        else:
-                            if attr.type.lower() in ['str','func']:
-                                file.write(f"{attr.name} = '  '  # type in {attr.type} \n")
-                            else:
-                                file.write(f"{attr.name} =       # type in {attr.type} \n")
-                    case _:
-                        pass
-                               
-                if attr.message != "":
-                    file.write(f"# {attr.message}\n")
+                
+                if attr.pre_fill is not None and attr.pre_fill != "":
+                    if attr.type.lower() in ['str','func']:
+                        file.write(f"{attr.name} = ' {attr.pre_fill} '  # ({attr.type}), {attr.message} \n")
+                    else:
+                        file.write(f"{attr.name} =  {attr.pre_fill}     # ({attr.type}), {attr.message} \n")
+                else:
+                    if attr.type.lower() in ['str','func']:
+                        file.write(f"{attr.name} = '  '  # ({attr.type}), {attr.message} \n")
+                    else:
+                        file.write(f"{attr.name} =       # ({attr.type}), {attr.message} \n")
+                    
                 file.write("\n")
-            # most unique parameters
-            if self.exp_type.lower() not in ["s7","r1b"]:
+            
+            # QM unique para
+            if len(target_qs) == 0:
+                but = False
+                for idx, attr_name in enumerate([name for name, _ in inspect.getmembers(self.brain) if not name.startswith("__") and isinstance(getattr(self.brain,name),ExpParas) and getattr(self.brain,name).uniqueness == 4]):
+                    attr:ExpParas = getattr(self.brain,attr_name)
+                    if idx == 0:
+                        but = True
+                        file.write(f"# QM unique zone =================================== (Qblox skip it)\n")
+                        file.write("\n")
+                    
+                    if attr.pre_fill is not None and attr.pre_fill != "":
+                        if attr.type.lower() in ['str','func']:
+                            file.write(f"   {attr.name} = ' {attr.pre_fill} '  # ({attr.type}), {attr.message} \n")
+                        else:
+                            file.write(f"   {attr.name} =  {attr.pre_fill}     # ({attr.type}), {attr.message} \n")
+                    else:
+                        if attr.type.lower() in ['str','func']:
+                            file.write(f"   { attr.name} = '  '  # ({attr.type}), {attr.message} \n")
+                        else:
+                            file.write(f"   { attr.name} =       # ({attr.type}), {attr.message} \n")
+                    
+                    file.write("\n")
+                    
+                if but:
+                    file.write(f"# QM zone end ===================================\n")
+                    file.write("\n")
+            
+            # Qblox unique parameters
+            if self.exp_type.lower() not in ["s8","r1b"]:
+                if len(target_qs) != 0:
+                    file.write("# Qblox unique zone =================================== (QM skip it)\n")
+                    file.write("\n")
                 for target in target_qs:
                     file.write(f'[{target}]\n')    
                     for attr_name in [name for name, _ in inspect.getmembers(self.brain) if not name.startswith("__") and isinstance(getattr(self.brain,name),ExpParas) and getattr(self.brain,name).uniqueness == 3]:
                         attr:ExpParas = getattr(self.brain,attr_name)
                         if attr.pre_fill is not None and attr.pre_fill != "":
                             if attr.type.lower() in ['str','func']:
-                                file.write(f"   {attr.name} = ' {attr.pre_fill} '  # type in {attr.type} \n")
+                                file.write(f"   {attr.name} = ' {attr.pre_fill} '  # ({attr.type}), {attr.message} \n")
                             else:
-                                file.write(f"   {attr.name} =  {attr.pre_fill}     # type in {attr.type} \n")
+                                file.write(f"   {attr.name} =  {attr.pre_fill}     # ({attr.type}), {attr.message} \n")
                         else:
                             if attr.type.lower() in ['str','func']:
-                                file.write(f"   {attr.name} = '  '  # type in {attr.type} \n")
+                                file.write(f"   {attr.name} = '  '  # ({attr.type}), {attr.message} \n")
                             else:
-                                file.write(f"   {attr.name} =       # type in {attr.type} \n")
+                                file.write(f"   {attr.name} =       # ({attr.type}), {attr.message} \n")
 
-                        if attr.message != "":
-                            file.write(f"   # {attr.message}\n")
                         file.write("\n")
+                if len(target_qs) != 0:
+                    file.write("# Qblox zone end =================================== \n")
+                    file.write("\n")
             else:
                 file.write(f"{OneshotUniqueVariableName} = {target_qs}  # type in list \n")
 

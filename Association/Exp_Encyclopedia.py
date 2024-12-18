@@ -6,10 +6,13 @@ from config_component.configuration import Configuration
 from ab.QM_config_dynamic import initializer
 from exp.save_data import DataPackager
 from qblox_drive_AS.support.UserFriend import *
+from xarray import open_dataset
+from numpy import ndarray
 
 
 
 
+# S0 done
 class SampleRegister():
     def __init__(self):
         self.provide_ExpSurveyInfo()
@@ -25,7 +28,7 @@ class SampleRegister():
 
         
 
-# S1
+# S1 done
 class CavitySearch(ExpSpirit):
     def __init__(self):
         super().__init__()
@@ -34,6 +37,7 @@ class CavitySearch(ExpSpirit):
         return "S1"
 
     def set_variables(self):
+        self.ro_elements = ExpParas("ro_elements","list",4,message="Fill in who to read like: ['q0_ro',...]",pre_fill=[])
         self.freq_range = ExpParas("freq_range","list",3,message="QM span given value from LO, Qblox sweep what freq you give. rule: [start, end]")
         self.freq_ptsORstep = ExpParas("freq_ptsORstep","float",1,message="According to sampling function, use step or pts for all qubit",pre_fill=100)
         self.avg_n = ExpParas("avg_n","int",1,pre_fill=100)
@@ -46,10 +50,10 @@ class CavitySearch(ExpSpirit):
 
     def start_measurement(self):
 
-        self.target_qs = list(self.freq_range.keys())
         match self.machine_type.lower():
             case 'qblox':
                 from qblox_drive_AS.support.ExpFrames import Zoom_CavitySearching
+                self.target_qs = list(self.freq_range.keys())
                 self.EXP = Zoom_CavitySearching(QD_path=self.connections[0],data_folder=self.save_data_folder,JOBID=self.JOBID)
                 self.EXP.SetParameters( self.freq_range,self.freq_ptsORstep,self.avg_n,execution=True)
                 self.EXP.WorkFlow()
@@ -62,20 +66,20 @@ class CavitySearch(ExpSpirit):
                 spec:ChannelInfo = self.connections[1]
                 config = config_obj.get_config()
                 qmm, _ = spec.buildup_qmm()
-                my_exp = ROFreqSweep(config, qmm)
-                ro_q = my_exp.ro_elements[0]
-                my_exp.initializer = initializer(2000,mode='wait')
+                self.EXP = ROFreqSweep(config, qmm)
+                self.EXP.ro_elements = self.ro_elements
+                self.EXP.initializer = initializer(2000,mode='wait')
                 """ freq unit in MHz """
-                my_exp.freq_range = (float(self.freq_range[ro_q][0])*1e-6, float(self.freq_range[ro_q][1])*1e-6)
-                print(f"freq range= {my_exp.freq_range}")
+                self.EXP.freq_range = (float(self.freq_range[0])*1e-6, float(self.freq_range[1])*1e-6)
+                
                 if self.freq_sampling_func == 'arange':
-                    my_exp.resolution = self.freq_ptsORstep*1e-6
-                    print(f'arange ,step= {my_exp.resolution}')
+                    self.EXP.resolution = self.freq_ptsORstep*1e-6
+                    
                 else:
-                    my_exp.resolution = (abs(float(self.freq_range[ro_q][1])-float(self.freq_range[ro_q][0]))/float(self.freq_ptsORstep))*1e-6
+                    self.EXP.resolution = (abs(float(self.freq_range[1])-float(self.freq_range[0]))/float(self.freq_ptsORstep))*1e-6
                 self.raw_data_path:str = os.path.join(self.save_data_folder,f"ROFreqSweep_{self.JOBID}.nc")
-                print(f"raw at= {self.raw_data_path}")
-                self.dataset = my_exp.run( int(self.avg_n))
+                
+                self.dataset = self.EXP.run( int(self.avg_n))
                 self.dataset.to_netcdf(self.raw_data_path,engine='netcdf4')
     
     def start_analysis(self,analysis_need:dict=None,*args):
@@ -84,21 +88,25 @@ class CavitySearch(ExpSpirit):
             case 'qblox':
                 queue_out_items = analysis_need
                 config_folder = queue_out_items["Configs"]   # Association.TrafficBureau.Queuer.QueueOut()
-                data_file = queue_out_items["Data"]
+                data_file = queue_out_items["Data"][0]
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
 
             case 'qm':
                 import numpy as np
                 import matplotlib.pyplot as plt
-                idata = self.dataset[self.target_qs[0]].sel(mixer='I').values
-                qdata = self.dataset[self.target_qs[0]].sel(mixer='Q').values
-                zdata = idata+1j*qdata
-                plt.plot(self.dataset.coords["frequency"].values,np.abs(zdata))
-                plt.savefig(os.path.join(self.save_data_folder,f"ROFreqSweep_{self.JOBID}.png"))
-                plt.close()
+                raw_data_files = analysis_need["Data"]
+                for file in raw_data_files:
+                    save_folder = os.path.split(file)[0]
+                    dataset = open_dataset(file)
+                    idata = dataset[self.target_qs[0]].sel(mixer='I').values
+                    qdata = dataset[self.target_qs[0]].sel(mixer='Q').values
+                    zdata = idata+1j*qdata
+                    plt.plot(dataset.coords["frequency"].values,np.abs(zdata))
+                    plt.savefig(os.path.join(save_folder,f"ROFreqSweep_{self.JOBID}.png"))
+                    plt.close()
 
-# S1b
+# S1b done
 class BbCavitySearch(ExpSpirit):
     def __init__(self):
         super().__init__()
@@ -119,8 +127,7 @@ class BbCavitySearch(ExpSpirit):
 
 
     def start_measurement(self):
-        if self.machine_type.lower() == 'qm':
-            raise SystemError(f"QM didn't support LO-sweeping Cavity Searching !")
+                    
         match self.machine_type.lower():
             case 'qblox':
                 from qblox_drive_AS.support.ExpFrames import BroadBand_CavitySearching
@@ -134,6 +141,8 @@ class BbCavitySearch(ExpSpirit):
                 self.EXP.WorkFlow()
                 eyeson_print("Raw data located:")
                 slightly_print(self.EXP.RawDataPath)
+            case 'qm':
+                raise SystemError(f"QM didn't support LO-sweeping Cavity Searching !")
     
     def start_analysis(self,analysis_need:dict=None,*args):
         """ Wait calling from Conductor.Executor """
@@ -141,11 +150,11 @@ class BbCavitySearch(ExpSpirit):
             case 'qblox':
                 queue_out_items = analysis_need
                 config_folder = queue_out_items["Configs"]   # Association.TrafficBureau.Queuer.QueueOut()
-                data_file = queue_out_items["Data"]
+                data_file = queue_out_items["Data"][0]
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
 
-# S2
+# S2 done
 class PowerCavity(ExpSpirit):
     def __init__(self):
         super().__init__()
@@ -154,6 +163,7 @@ class PowerCavity(ExpSpirit):
         return "S2"
 
     def set_variables(self):
+        self.ro_elements = ExpParas("ro_elements","list",4,message="Fill in who to read like: ['q0_ro',...]",pre_fill=[])
         self.freq_range = ExpParas("freq_range","list",3,message="Values to span. rule: [start, end]")
         self.freq_ptsORstep = ExpParas("freq_ptsORstep","int",1,message="Depends on Freq sampling func set in step or pts.")
         self.avg_n = ExpParas("avg_n","int",1,pre_fill=200)
@@ -168,9 +178,9 @@ class PowerCavity(ExpSpirit):
 
     def start_measurement(self):
 
-        self.target_qs = list(self.freq_range.keys())
         match self.machine_type.lower():
             case 'qblox':
+                self.target_qs = list(self.freq_range.keys())
                 from qblox_drive_AS.support.ExpFrames import PowerCavity
                 self.EXP = PowerCavity(QD_path=self.connections[0],data_folder=self.save_data_folder,JOBID=self.JOBID)
                 self.EXP.SetParameters(self.freq_range, self.power_range, self.power_sampling_func, self.freq_ptsORstep,self.avg_n,execution=True)
@@ -184,28 +194,31 @@ class PowerCavity(ExpSpirit):
                 spec:ChannelInfo = self.connections[1]
                 config = config_obj.get_config()
                 qmm, _ = spec.buildup_qmm()
-                my_exp = ROFreqSweepPowerDep(config, qmm)
-                my_exp.ro_elements = list(self.freq_range.keys())
-                ro_q = my_exp.ro_elements[0]
-                my_exp.initializer = initializer(2000,mode='wait')
+                self.EXP = ROFreqSweepPowerDep(config, qmm)
+                self.EXP.ro_elements = self.ro_elements
+                self.EXP.initializer = initializer(2000,mode='wait')
                 """ freq unit in MHz """
-                my_exp.freq_range = (float(self.freq_range[ro_q][0])*1e-6, float(self.freq_range[ro_q][1])*1e-6)
-                print(f"freq range= {my_exp.freq_range}")
+                self.EXP.freq_range = (float(self.freq_range[0])*1e-6, float(self.freq_range[1])*1e-6)
+                print(f"freq range= {self.EXP.freq_range}")
                 if self.freq_sampling_func == 'arange':
-                    my_exp.freq_resolution = self.freq_ptsORstep*1e-6
-                    print(f'arange ,step= {my_exp.freq_resolution}')
+                    self.EXP.freq_resolution = self.freq_ptsORstep*1e-6
+                    print(f'arange ,step= {self.EXP.freq_resolution}')
                 else:
-                    my_exp.freq_resolution = (abs(float(self.freq_range[ro_q][1])-float(self.freq_range[ro_q][0]))/float(self.freq_ptsORstep))*1e-6
+                    self.EXP.freq_resolution = (abs(float(self.freq_range[1])-float(self.freq_range[0]))/float(self.freq_ptsORstep))*1e-6
                 """ power """
                 if self.power_sampling_func in ['linspace','logspace']:
-                    my_exp.amp_scale = self.power_sampling_func[:3]
+                    self.EXP.amp_scale = self.power_sampling_func[:3]
                 else:
-                    my_exp.amp_scale = 'log'
-                my_exp.amp_mod_range = (self.power_range[0],self.power_range[1])
-                self.folder_label = "power_dep_resonator"
-                self.dataset = my_exp.run( int(self.avg_n))
-                self.dp = DataPackager( self.save_data_folder, self.folder_label )
-                self.dp.save_nc(self.dataset,self.folder_label)
+                    self.EXP.amp_scale = 'log'
+                self.EXP.amp_resolution = self.power_range[-1]    
+                self.EXP.amp_mod_range = (self.power_range[0],self.power_range[1])
+                self.folder_label = os.path.split(self.save_data_folder)[-1]  
+
+                
+                self.dataset = self.EXP.run( int(self.avg_n))
+                save_path = os.path.join(self.save_data_folder,f"PowerCavity_{self.JOBID}.nc")
+                self.dataset.to_netcdf(save_path)
+    
     
     def start_analysis(self,analysis_need:dict=None,*args):
         """ Wait calling from Conductor.Executor """
@@ -213,17 +226,22 @@ class PowerCavity(ExpSpirit):
             case 'qblox':
                 queue_out_items = analysis_need
                 config_folder = queue_out_items["Configs"]   # Association.TrafficBureau.Queuer.QueueOut()
-                data_file = queue_out_items["Data"]
+                data_file = queue_out_items["Data"][0]
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
 
             case 'qm':
                 from exp.plotting import PainterPowerDepRes
-                painter = PainterPowerDepRes()
-                figs = painter.plot(self.dataset,self.folder_label)
-                self.dp.save_figs( figs )
+                raw_data_files = analysis_need["Data"]
+                for file in raw_data_files:
+                    dataset = open_dataset(file)
+                    painter = PainterPowerDepRes()
+                    folder_path = os.path.split(file)[0]
+                    dp = DataPackager(folder_path,'pic',time_label_type="no_label")
+                    figs = painter.plot(dataset,"Power_Cavity")
+                    dp.save_figs( figs )
 
-# S2b
+# S2b done
 class DressedCavityFit(ExpSpirit):
     def __init__(self):
         super().__init__()
@@ -244,7 +262,7 @@ class DressedCavityFit(ExpSpirit):
 
 
     def start_measurement(self):
-
+    
         self.target_qs = list(self.freq_range.keys())
         match self.machine_type.lower():
             case 'qblox':
@@ -254,6 +272,8 @@ class DressedCavityFit(ExpSpirit):
                 self.EXP.WorkFlow()
                 eyeson_print("Raw data located:")
                 slightly_print(self.EXP.RawDataPath)
+            case 'qm':
+                raise SystemError(f"QM didn't support DressedCavityFit !")
 
     
     def start_analysis(self,analysis_need:dict=None,*args):
@@ -262,12 +282,12 @@ class DressedCavityFit(ExpSpirit):
             case 'qblox':
                 queue_out_items = analysis_need
                 config_folder = queue_out_items["Configs"]   # Association.TrafficBureau.Queuer.QueueOut()
-                data_file = queue_out_items["Data"]
+                data_file = queue_out_items["Data"][0]
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 print(f"QD @ {QD_path}")
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
 
-# S3
+# S3 done 
 class FluxCavity(ExpSpirit):
     def __init__(self):
         super().__init__()
@@ -276,11 +296,12 @@ class FluxCavity(ExpSpirit):
         return "S3"
 
     def set_variables(self):
+        self.ro_elements = ExpParas("ro_elements","list",4,message="Fill in who to read like: ['q0_ro',...]",pre_fill=[])
         self.freq_range = ExpParas("freq_range","list",3,message="Values to span. rule: [start, end]")
         self.freq_ptsORstep = ExpParas("freq_ptsORstep","int",1,message="Depends on Freq sampling func set in step or pts.")
         self.avg_n = ExpParas("avg_n","int",1,pre_fill=300)
         self.flux_range = ExpParas("flux_range","list",2,message="rule: [start, end, pts/step], QM please set in step.")
-        self.bias_targets = ExpParas("bias_targets","list",2,message="If you want bias on coupler, please fill it in like ['c0', ...]. Otherwise leave [].",pre_fill=[])
+        self.bias_targets = ExpParas("bias_targets","list",2,message="If you want bias on coupler, please fill it in like ['c0', ...]. Otherwise leave []. QM call it z_elements",pre_fill=[])
         self.freq_sampling_func = ExpParas("freq_sampling_func","func",1,message="sampling function options: 'linspace', 'arange'.",pre_fill='linspace')
         self.flux_sampling_func = ExpParas("flux_sampling_func","func",1,message="sampling function options: 'linspace', 'arange'.",pre_fill='linspace')
 
@@ -291,10 +312,10 @@ class FluxCavity(ExpSpirit):
 
     def start_measurement(self):
 
-        self.target_qs = list(self.freq_range.keys())
         match self.machine_type.lower():
             case 'qblox':
                 from qblox_drive_AS.support.ExpFrames import FluxCavity,FluxCoupler
+                self.target_qs = list(self.freq_range.keys())
                 if len(list(self.bias_targets)) == 0: 
                     slightly_print("Flux Cavity start.")
                     self.EXP = FluxCavity(QD_path=self.connections[0],data_folder=self.save_data_folder,JOBID=self.JOBID)
@@ -307,6 +328,28 @@ class FluxCavity(ExpSpirit):
                 self.EXP.WorkFlow()
                 eyeson_print("Raw data located:")
                 slightly_print(self.EXP.RawDataPath)
+            case 'qm':
+                from exp.rofreq_sweep_flux_dep import freq_sweep_flux_dep
+                config_obj:Configuration = self.connections[0]
+                spec:ChannelInfo = self.connections[1]
+                config = config_obj.get_config()
+                qmm, _ = spec.buildup_qmm()
+                init_macro = initializer(10000,mode='wait')
+                z_amp_ratio_range = (self.flux_range[0],self.flux_range[1])
+                freq_range = (self.freq_range[0]*1e-6,self.freq_range[1]*1e-6)
+                if self.freq_sampling_func == 'linspace':
+                    freq_resolution = abs(self.EXP.freq_range[-1]-self.EXP.freq_range[0])/self.freq_ptsORstep
+                else:
+                    freq_resolution = self.freq_ptsORstep * 1e-6
+
+                if self.flux_sampling_func == 'arange':
+                    z_amp_ratio_resolution = self.flux_range[-1]
+                else:
+                    z_amp_ratio_resolution = abs(z_amp_ratio_range[0]-z_amp_ratio_range[-1])/self.flux_range[-1]
+                
+                self.dataset = freq_sweep_flux_dep(self.ro_elements,self.bias_targets,config, qmm, self.avg_n, 1, freq_range, z_amp_ratio_range,z_amp_ratio_resolution,freq_resolution,init_macro)
+                save_path = os.path.join(self.save_data_folder,f"FluxCavity_{self.JOBID}.nc")
+                self.dataset.to_netcdf(save_path)
 
             
     
@@ -316,11 +359,22 @@ class FluxCavity(ExpSpirit):
             case 'qblox':
                 queue_out_items = analysis_need
                 config_folder = queue_out_items["Configs"]   # Association.TrafficBureau.Queuer.QueueOut()
-                data_file = queue_out_items["Data"]
+                data_file = queue_out_items["Data"][0]
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
+            
+            case 'qm':
+                from exp.plotting import PainterFindFluxPeriod
+                raw_data_files = analysis_need["Data"]
+                for file in raw_data_files:
+                    dataset = open_dataset(file)
+                    painter = PainterFindFluxPeriod()
+                    folder_path = os.path.split(file)[0]
+                    dp = DataPackager(folder_path,'pic',time_label_type="no_label")
+                    figs = painter.plot(dataset,"Flux_Cavity")
+                    dp.save_figs( figs )
 
-# S3b
+# S3b done
 class GroundPositioning(ExpSpirit):
     def __init__(self):
         super().__init__()
@@ -348,6 +402,8 @@ class GroundPositioning(ExpSpirit):
                 self.EXP.WorkFlow()
                 eyeson_print("Raw data located:")
                 slightly_print(self.EXP.RawDataPath)
+            case 'qm':
+                raise SystemError(f"QM didn't support Ground-state Positioning !")
 
     
     def start_analysis(self,analysis_need:dict=None,*args):
@@ -356,26 +412,34 @@ class GroundPositioning(ExpSpirit):
             case 'qblox':
                 queue_out_items = analysis_need
                 config_folder = queue_out_items["Configs"]   # Association.TrafficBureau.Queuer.QueueOut()
-                data_file = queue_out_items["Data"]
+                data_file = queue_out_items["Data"][0]
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
 
-# S4
+# S5, done
 class FluxQubitSpectrum(ExpSpirit):
     def __init__(self):
         super().__init__()
             
     def get_ExpLabel(self)->str:
-        return "S4"
+        return "S5"
 
     def set_variables(self):
+        self.ro_elements = ExpParas("ro_elements","list",4,message="Fill in who to read like: ['q0_ro',...]",pre_fill=[])
+        self.xy_elements = ExpParas("xy_elements","list",4,message="Fill in who to drive like: ['q0_xy',...]",pre_fill=[])
+        self.driving_time = ExpParas("driving_time","float",4,message="XY driving time.",pre_fill=20e-6)
+        self.xy_amp_mod = ExpParas("xy_amp_mod","float",4,message="Driving pulse amp modification.",pre_fill=0.1)
+        self.sweep_type = ExpParas("sweep_type","str",4,message="z_pulse or overlap ?",pre_fill='z_pulse')
+        self.parametric_drive = ExpParas("parametric_drive","bool",4,message="0 for False 1 for True",pre_fill=0)
+        self.Pdrive_element = ExpParas("Pdrive_element","str",4,message="Apply parametric drive on who ? like: 'q0_z'. Keep it empty if you don't apply.",pre_fill="")
+
         self.freq_range = ExpParas("freq_range","list",3,message="Values to span. rule: [start, end] like: [-300e6, +200e6].")
         self.freq_ptsORstep = ExpParas("freq_ptsORstep","int",1,message="Depends on Freq sampling func set in step or pts.")
         self.bias_targets = ExpParas("bias_targets","list",2,message="Must be fill, what element will be biased, like ['q0','q1','c0', ...].") 
         self.avg_n = ExpParas("avg_n","int",1,pre_fill=500)
-        self.flux_range = ExpParas("flux_range","list",2,message="rule: [start, end, pts/step].")
+        self.flux_range = ExpParas("flux_range","list",2,message="rule: [start, end, pts/step]. QM call it 'z_amp_ratio_range'")
         self.freq_sampling_func = ExpParas("freq_sampling_func","func",1,message="sampling function options: 'linspace', 'arange'.",pre_fill='linspace')
-        self.flux_sampling_func = ExpParas("flux_sampling_func","func",1,message="sampling function options: 'linspace', 'arange', 'logspace'.",pre_fill='linspace')
+        self.flux_sampling_func = ExpParas("flux_sampling_func","func",1,message="sampling function options: 'linspace', 'arange'.",pre_fill='linspace')
 
 
     def provide_ExpSurveyInfo(self):
@@ -384,18 +448,47 @@ class FluxQubitSpectrum(ExpSpirit):
 
     def start_measurement(self):
 
-        self.target_qs = list(self.freq_range.keys())
         match self.machine_type.lower():
             case 'qblox':
+                self.target_qs = list(self.freq_range.keys())
                 from qblox_drive_AS.support.ExpFrames import FluxQubit
                 self.EXP = FluxQubit(QD_path=self.connections[0],data_folder=self.save_data_folder,JOBID=self.JOBID)
                 self.EXP.SetParameters(self.freq_range, self.bias_targets, self.flux_range, self.flux_sampling_func, self.freq_ptsORstep,self.avg_n,execution=True)
                 self.EXP.WorkFlow()
                 eyeson_print("Raw data located:")
                 slightly_print(self.EXP.RawDataPath)
+            case 'qm':
+                from exp.xyfreq_sweep_flux_dep import XYFreqFlux
+                config_obj:Configuration = self.connections[0]
+                spec:ChannelInfo = self.connections[1]
+                config = config_obj.get_config()
+                qmm, _ = spec.buildup_qmm()
+                self.EXP = XYFreqFlux(config, qmm)
+                self.EXP.ro_elements = self.ro_elements
+                self.EXP.xy_elements = self.xy_elements
+                self.EXP.z_elements = self.bias_targets
+                self.EXP.xy_driving_time = self.driving_time * 1e6
+                self.EXP.xy_amp_mod = self.xy_amp_mod
+                self.EXP.sweep_type = self.sweep_type
+                self.EXP.parametric_drive = self.parametric_drive
+                self.EXP.drive_element = self.Pdrive_element
+                self.EXP.z_amp_ratio_range = (self.flux_range[0],self.flux_range[1])
+                self.EXP.freq_range = (self.freq_range[0]*1e-6,self.freq_range[1]*1e-6)
+                if self.freq_sampling_func == 'linspace':
+                    self.EXP.freq_resolution = abs(self.EXP.freq_range[-1]-self.EXP.freq_range[0])/self.freq_ptsORstep
+                else:
+                    self.EXP.freq_resolution = self.freq_ptsORstep * 1e-6
 
-            
-    
+                if self.flux_sampling_func == 'arange':
+                    self.EXP.z_amp_ratio_resolution = self.flux_range[-1]
+                else:
+                    self.EXP.z_amp_ratio_resolution = abs(self.EXP.z_amp_ratio_range[0]-self.EXP.z_amp_ratio_range[-1])/self.flux_range[-1]
+                
+                self.EXP.initializer = initializer(10000,mode='wait')
+                self.dataset = self.EXP.run( self.avg_n )
+                save_path = os.path.join(self.save_data_folder,f"FluxQubitSpec_{self.JOBID}.nc")
+                self.dataset.to_netcdf(save_path)
+                
     def start_analysis(self,analysis_need:dict=None,*args):
         """ Wait calling from Conductor.Executor """
     
@@ -403,24 +496,41 @@ class FluxQubitSpectrum(ExpSpirit):
             case 'qblox':
                 queue_out_items = analysis_need
                 config_folder = queue_out_items["Configs"]   # Association.TrafficBureau.Queuer.QueueOut()
-                data_file = queue_out_items["Data"]
+                data_file = queue_out_items["Data"][0]
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
+            case 'qm':
+                from exp.plotting import PainterFluxDepQubit
+                raw_data_files = analysis_need["Data"]
+                for file in raw_data_files:
+                    dataset = open_dataset(file)
+                    for attr in dataset.attrs:
+                        if not isinstance(dataset.attrs[attr], ndarray):
+                            dataset.attrs[attr] = [dataset.attrs[attr]]
+                    painter = PainterFluxDepQubit()
+                    folder_path = os.path.split(file)[0]
+                    dp = DataPackager(folder_path,'pic',time_label_type="no_label")
+                    figs = painter.plot(dataset,"Flux_Qubit_Spectrum")
+                    dp.save_figs( figs )
 
-# S4b
+# S4, done
 class Power2tone(ExpSpirit):
     def __init__(self):
         super().__init__()
             
     def get_ExpLabel(self)->str:
-        return "S4b"
+        return "S4"
 
     def set_variables(self):
-        self.freq_range = ExpParas("freq_range","list",3,message="Values to sweep. rule: [start, end] like: [4.2e9, 4.7e9], or [0] calculate a advise value by system.")
+        self.ro_elements = ExpParas("ro_elements","list",4,message="Fill in who to read like: ['q0_ro',...]",pre_fill=[])
+        self.xy_elements = ExpParas("xy_elements","list",4,message="Fill in who to drive like: ['q0_xy',...]",pre_fill=[])
+        self.driving_time = ExpParas("driving_time","float",4,message="XY driving time.",pre_fill=20e-6)
+
+        self.freq_range = ExpParas("freq_range","list",3,message="Values to sweep. rule: [start, end] like: [4.2e9, 4.7e9]. For Qblox: [0] calculate a advise value by computer.")
         self.freq_ptsORstep = ExpParas("freq_ptsORstep","int",1,message="Depends on Freq sampling func set in step or pts.")
-        self.ROXYoverlap = ExpParas("ROXYoverlap","int",1,message="booling value set 0 for False or 1 for True, RO-XY overlap or not ?",pre_fill=0)
+        self.ROXYoverlap = ExpParas("ROXYoverlap","int",1,message="booling value set 0 for False (z_pulse) or 1 for True (overlap), RO-XY overlap or not ?",pre_fill=0)
         self.avg_n = ExpParas("avg_n","int",1,pre_fill=300)
-        self.power_range = ExpParas("power_range","list",2,message="rule: [start, end, pts/step] or [a fixed value].",pre_fill=[0,0.1,10])
+        self.power_range = ExpParas("power_range","list",2,message="rule: [start, end, pts/step] or [a fixed value], QM please fill in a fixed value.",pre_fill=[0,0.1,10])
         self.freq_sampling_func = ExpParas("freq_sampling_func","func",1,message="sampling function options: 'linspace', 'arange'.",pre_fill='linspace')
         self.power_sampling_func = ExpParas("power_sampling_func","func",1,message="sampling function options: 'linspace', 'arange', 'logspace'.",pre_fill='linspace')
 
@@ -430,36 +540,72 @@ class Power2tone(ExpSpirit):
 
 
     def start_measurement(self):
-
-        self.target_qs = list(self.freq_range.keys())
+                 
         match self.machine_type.lower():
             case 'qblox':
                 from qblox_drive_AS.support.ExpFrames import PowerConti2tone
+                self.target_qs = list(self.freq_range.keys())
                 self.EXP = PowerConti2tone(QD_path=self.connections[0],data_folder=self.save_data_folder,JOBID=self.JOBID)
                 self.EXP.SetParameters(self.freq_range, self.power_range, self.power_sampling_func, self.freq_ptsORstep,self.avg_n,self.ROXYoverlap,execution=True)
                 self.EXP.WorkFlow()
                 eyeson_print("Raw data located:")
                 slightly_print(self.EXP.RawDataPath)
+            case 'qm':
+                from exp.xyfreq_sweep import XYFreq
+                config_obj:Configuration = self.connections[0]
+                spec:ChannelInfo = self.connections[1]
+                config = config_obj.get_config()
+                qmm, _ = spec.buildup_qmm()
+                self.EXP = XYFreq(config, qmm)
+                self.EXP.ro_elements = self.ro_elements
+                self.EXP.xy_elements = self.xy_elements
+                self.EXP.xy_driving_time = self.driving_time * 1e6
+                self.EXP.xy_amp_mod = self.power_range[0]
+                self.EXP.sweep_type = "overlap" if self.ROXYoverlap else "z_pulse"
+                self.EXP.freq_range = (self.freq_range[0]*1e-6,self.freq_range[1]*1e-6)
+                if self.freq_sampling_func == 'linspace':
+                    self.EXP.freq_resolution = abs(self.EXP.freq_range[-1]-self.EXP.freq_range[0])/self.freq_ptsORstep
+                else:
+                    self.EXP.freq_resolution = self.freq_ptsORstep * 1e-6
+                
+                self.EXP.initializer = initializer(10000,mode='wait')
+                self.dataset = self.EXP.run( self.avg_n )
+                save_path = os.path.join(self.save_data_folder,f"TwoTone_{self.JOBID}.nc")
+                self.dataset.to_netcdf(save_path)
 
             
-    
     def start_analysis(self,analysis_need:dict=None,*args):
         """ Wait calling from Conductor.Executor """
         match self.machine_type.lower():
             case 'qblox':
                 queue_out_items = analysis_need
                 config_folder = queue_out_items["Configs"]   # Association.TrafficBureau.Queuer.QueueOut()
-                data_file = queue_out_items["Data"]
+                data_file = queue_out_items["Data"][0]
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
+            case 'qm':
+                from exp.plotting import PainterQubitSpec
+                raw_data_files = analysis_need["Data"]
+                for file in raw_data_files:
+                    
+                    dataset = open_dataset(file)
+                    for attr in dataset.attrs:
+                        if not isinstance(dataset.attrs[attr], ndarray):
+                            dataset.attrs[attr] = [dataset.attrs[attr]]
+                    
+                    painter = PainterQubitSpec()
+                    folder_path = os.path.split(file)[0]
+                    dp = DataPackager(folder_path,'pic',time_label_type="no_label")
+                    figs = painter.plot(dataset,"Qubit_Spectrum")
+                    dp.save_figs( figs )
 
-# S5
+# S6
 class PowerRabi(ExpSpirit):
     def __init__(self):
         super().__init__()
             
     def get_ExpLabel(self)->str:
-        return "S5"
+        return "S6"
 
     def set_variables(self):
         self.pi_amp = ExpParas("pi_amp","list",3,message="amp values span. rule: [start, end] like: [-0.6, 0.6].")
@@ -494,17 +640,17 @@ class PowerRabi(ExpSpirit):
             case 'qblox':
                 queue_out_items = analysis_need
                 config_folder = queue_out_items["Configs"]   # Association.TrafficBureau.Queuer.QueueOut()
-                data_file = queue_out_items["Data"]
+                data_file = queue_out_items["Data"][0]
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
 
-# S6
+# S7
 class TimeRabi(ExpSpirit):
     def __init__(self):
         super().__init__()
             
     def get_ExpLabel(self)->str:
-        return "S6"
+        return "S7"
 
     def set_variables(self):
         self.pi_amp = ExpParas("pi_amp","float",3,message="amp for your pi-pulse.")
@@ -539,18 +685,18 @@ class TimeRabi(ExpSpirit):
             case 'qblox':
                 queue_out_items = analysis_need
                 config_folder = queue_out_items["Configs"]   # Association.TrafficBureau.Queuer.QueueOut()
-                data_file = queue_out_items["Data"]
+                data_file = queue_out_items["Data"][0]
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
 
-# S7
+# S8
 class SingleShot(ExpSpirit):
     def __init__(self):
         super().__init__()
         
             
     def get_ExpLabel(self)->str:
-        return "S7"
+        return "S8"
 
     def set_variables(self):
         self.histo_counts = ExpParas("histo_counts","int",1,message="repeat times of histogram",pre_fill=1)
@@ -579,17 +725,17 @@ class SingleShot(ExpSpirit):
             case 'qblox':
                 queue_out_items = analysis_need
                 config_folder = queue_out_items["Configs"]   # Association.TrafficBureau.Queuer.QueueOut()
-                data_file = queue_out_items["Data"]
+                data_file = queue_out_items["Data"][0]
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
 
-# S8
+# S9
 class RamseyT2(ExpSpirit):
     def __init__(self):
         super().__init__()
             
     def get_ExpLabel(self)->str:
-        return "S8"
+        return "S9"
 
     def set_variables(self):
         self.time_range = ExpParas("time_range","list",3,message="evolution time span. rule: [start, end] like: [0, 20e-6].")
@@ -623,17 +769,17 @@ class RamseyT2(ExpSpirit):
             case 'qblox':
                 queue_out_items = analysis_need
                 config_folder = queue_out_items["Configs"]   # Association.TrafficBureau.Queuer.QueueOut()
-                data_file = queue_out_items["Data"]
+                data_file = queue_out_items["Data"][0]
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
 
-# S9
+# S10
 class SpinEchoT2(ExpSpirit):
     def __init__(self):
         super().__init__()
             
     def get_ExpLabel(self)->str:
-        return "S9"
+        return "S10"
 
     def set_variables(self):
         self.time_range = ExpParas("time_range","list",3,message="evolution time span. rule: [start, end] like: [0, 20e-6].")
@@ -667,7 +813,7 @@ class SpinEchoT2(ExpSpirit):
             case 'qblox':
                 queue_out_items = analysis_need
                 config_folder = queue_out_items["Configs"]   # Association.TrafficBureau.Queuer.QueueOut()
-                data_file = queue_out_items["Data"]
+                data_file = queue_out_items["Data"][0]
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
 
@@ -693,7 +839,7 @@ class CPMG(ExpSpirit):
 
 
     def start_measurement(self):
-
+                  
         self.target_qs = list(self.time_range.keys())
         match self.machine_type.lower():
             case 'qblox':
@@ -707,26 +853,27 @@ class CPMG(ExpSpirit):
                 self.EXP.WorkFlow()
                 eyeson_print("Raw data located:")
                 slightly_print(self.EXP.RawDataPath)
+            case 'qm':
+                raise SystemError(f"QM didn't support CPMG !")
 
-            
-    
+
     def start_analysis(self,analysis_need:dict=None,*args):
         """ Wait calling from Conductor.Executor """
         match self.machine_type.lower():
             case 'qblox':
                 queue_out_items = analysis_need
                 config_folder = queue_out_items["Configs"]   # Association.TrafficBureau.Queuer.QueueOut()
-                data_file = queue_out_items["Data"]
+                data_file = queue_out_items["Data"][0]
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
 
-# S10
+# S11
 class EnergyRelaxation(ExpSpirit):
     def __init__(self):
         super().__init__()
             
     def get_ExpLabel(self)->str:
-        return "S10"
+        return "S11"
 
     def set_variables(self):
         self.time_range = ExpParas("time_range","list",3,message="evolution time span. rule: [start, end] like: [0, 20e-6].")
@@ -760,7 +907,7 @@ class EnergyRelaxation(ExpSpirit):
             case 'qblox':
                 queue_out_items = analysis_need
                 config_folder = queue_out_items["Configs"]   # Association.TrafficBureau.Queuer.QueueOut()
-                data_file = queue_out_items["Data"]
+                data_file = queue_out_items["Data"][0]
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
 
@@ -801,7 +948,7 @@ class XYFcalibrator(ExpSpirit):
             case 'qblox':
                 queue_out_items = analysis_need
                 config_folder = queue_out_items["Configs"]   # Association.TrafficBureau.Queuer.QueueOut()
-                data_file = queue_out_items["Data"]
+                data_file = queue_out_items["Data"][0]
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
 
@@ -843,7 +990,7 @@ class ROFcalibrator(ExpSpirit):
             case 'qblox':
                 queue_out_items = analysis_need
                 config_folder = queue_out_items["Configs"]   # Association.TrafficBureau.Queuer.QueueOut()
-                data_file = queue_out_items["Data"]
+                data_file = queue_out_items["Data"][0]
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
 
@@ -885,7 +1032,7 @@ class ROLcalibrator(ExpSpirit):
             case 'qblox':
                 queue_out_items = analysis_need
                 config_folder = queue_out_items["Configs"]   # Association.TrafficBureau.Queuer.QueueOut()
-                data_file = queue_out_items["Data"]
+                data_file = queue_out_items["Data"][0]
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
 
@@ -928,7 +1075,7 @@ class PIampCalibrator(ExpSpirit):
             case 'qblox':
                 queue_out_items = analysis_need
                 config_folder = queue_out_items["Configs"]   # Association.TrafficBureau.Queuer.QueueOut()
-                data_file = queue_out_items["Data"]
+                data_file = queue_out_items["Data"][0]
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
 
@@ -971,11 +1118,11 @@ class halfPIampCalibrator(ExpSpirit):
             case 'qblox':
                 queue_out_items = analysis_need
                 config_folder = queue_out_items["Configs"]   # Association.TrafficBureau.Queuer.QueueOut()
-                data_file = queue_out_items["Data"]
+                data_file = queue_out_items["Data"][0]
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
 
-#TODO C6
+# C6
 class DragCoefCali(ExpSpirit):
     def __init__(self):
         super().__init__()
@@ -1013,7 +1160,7 @@ class DragCoefCali(ExpSpirit):
             case 'qblox':
                 queue_out_items = analysis_need
                 config_folder = queue_out_items["Configs"]   # Association.TrafficBureau.Queuer.QueueOut()
-                data_file = queue_out_items["Data"]
+                data_file = queue_out_items["Data"][0]
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
 
@@ -1061,7 +1208,7 @@ class ZgateRelaxation(ExpSpirit):
             case 'qblox':
                 queue_out_items = analysis_need
                 config_folder = queue_out_items["Configs"]   # Association.TrafficBureau.Queuer.QueueOut()
-                data_file = queue_out_items["Data"]
+                data_file = queue_out_items["Data"][0]
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
 
@@ -1130,11 +1277,11 @@ class TimeMonitor(ExpSpirit):
             case 'qblox':
                 queue_out_items = analysis_need
                 config_folder = queue_out_items["Configs"]   # Association.TrafficBureau.Queuer.QueueOut()
-                data_file = queue_out_items["Data"]
+                data_file = queue_out_items["Data"][0]
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.TimeMonitor_analysis(New_QD_path=QD_path,New_data_file=data_file)
 
-#TODO R1b
+# R1b
 class GatePhaErrorEstim(ExpSpirit):
     def __init__(self):
         super().__init__()
@@ -1154,6 +1301,8 @@ class GatePhaErrorEstim(ExpSpirit):
 
 
     def start_measurement(self):
+        if self.machine_type.lower() == 'qm':
+            raise SystemError(f"QM didn't support DressedCavityFit !")
         match self.machine_type.lower():
             case 'qblox':
                 from qblox_drive_AS.support.ExpFrames import XGateErrorTest
@@ -1162,6 +1311,8 @@ class GatePhaErrorEstim(ExpSpirit):
                 self.EXP.WorkFlow()
                 eyeson_print("Raw data located:")
                 slightly_print(self.EXP.RawDataPath)
+            case 'qm':
+                raise SystemError(f"QM didn't support X-Gate phase-error test !")
 
             
     
@@ -1171,7 +1322,7 @@ class GatePhaErrorEstim(ExpSpirit):
             case 'qblox':
                 queue_out_items = analysis_need
                 config_folder = queue_out_items["Configs"]   # Association.TrafficBureau.Queuer.QueueOut()
-                data_file = queue_out_items["Data"]
+                data_file = queue_out_items["Data"][0]
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
 

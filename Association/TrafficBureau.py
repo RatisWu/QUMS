@@ -8,6 +8,7 @@ from qblox_drive_AS.support.UserFriend import *
 class Queuer():
     def __init__(self):
         self.__CheckAllQueues__()
+        self.InQueueMark:bool = False
         self.EnforcedQueueOut:bool = False
     
     def __JOBIDconnector__(self):
@@ -115,7 +116,7 @@ class Queuer():
                 else:
                     shutil.move(self.Requirements[requirement],os.path.join(self.queue,JOBID_labeled_name))
                     self.program_requirements[requirement] = os.path.join(self.queue,JOBID_labeled_name)
-                
+            self.InQueueMark = True  
         else:
             self.program_requirements = self.__Interchanges__()
             return self.program_requirements
@@ -148,6 +149,7 @@ class Queuer():
         for item_path in [os.path.join(self.queue, name) for name in os.listdir(self.queue)]:
             shutil.move(item_path, self.JOB_folder)
 
+        item_to_analyze["Data"] = []
         for item_path in [os.path.join(self.JOB_folder, name) for name in os.listdir(self.JOB_folder)]:
             if ConfigUniqueName in os.path.split(item_path)[-1]:
                 # expect only one 
@@ -156,8 +158,9 @@ class Queuer():
     
             if os.path.split(item_path)[-1].split(".")[-1] == "nc":
                 # may have a lot, but no worries
-                item_to_analyze["Data"] = item_path
-
+                item_to_analyze["Data"].append(item_path)
+        
+        self.InQueueMark = False
         return item_to_analyze
     
     def QueueCleaner(self,machine_ip:str):
@@ -192,6 +195,7 @@ class Queuer():
         for item_path in [os.path.join(self.queue, name) for name in os.listdir(self.queue)]:
             shutil.move(item_path, self.JOB_folder)
         
+        self.InQueueMark = False
         highlight_print(f"Successfully clean Queue: {machine_ip.replace('.','_')} !")
         slightly_print(f"Original data had been moved to dir: {self.JOB_folder}")
 
@@ -221,7 +225,7 @@ class Queuer():
                 os.remove(item)
             elif os.path.isdir(item):
                 shutil.rmtree(item)
-
+        self.InQueueMark = False
         print("Queuer urgently queue out the exp requests.")
 
 

@@ -55,6 +55,7 @@ class ExpParas():
          - uniqueness = 1 (common), for the parameter which is (1) **NOT** a exp-variable and (2) keeps the same for all qubits in this measurement, Ex. `avg_n`\n 
          - uniqueness = 2 (middle), for the parameter which is (1) a exp-variable and (2) keeps the same for all qubits in this measurement, Ex. `bias` when FluxCavity \n 
          - uniqueness = 3 (unique), for the parameter which is (1) a exp-variable and (2) **totally different** for all qubits in this measurement, Ex. `freq` when FluxCavity \n
+         - uniqueness = 4 (QM-only), for the parameter which is only applied for QM \n
         - custom_type (`str`): Makes user know what type to fill into the questions for ExpParasSurvey, common python type like [str, int, list, function, ...] is supported.
         
         ### Attributes:
@@ -72,10 +73,14 @@ class ExpParas():
         self.type:str = custom_type
         self.uniqueness:int = uniqueness
         self.message:str = message
+        self.__check_uniqueness__()
     
     def __check_uniqueness__(self):
         if int(self.uniqueness) > 4:
-            raise ValueError("Uniqueness must lower than or equal to 3 !")
+            raise ValueError("Uniqueness must lower than or equal to 4 !")
+        if int(self.uniqueness)==4 and self.pre_fill is None:
+            raise ValueError(f"Your Exp para '{self.name}' uniqueness == 4 but pre_fill is None, check it! The pre_fill must not be None when the uniqueness is 4.")
+
         
     
     def __giveProgramReadable__(self):
