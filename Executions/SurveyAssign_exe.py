@@ -14,18 +14,18 @@ S2b: Dressed Cavity Search (Qblox only)                  |--done
 S3 : Flux dependent Cavity/Coupler                       |--done
 S3b: Ground IQ positioning (Qblox only)                  |--done
 S4 : Power dependent Continuous 2-tone                   |--done
-S5 : Flux dependent Qubit spectrum  #! qblox test okay   |
-S6 : Power Rabi Oscillation  #! qblox test okay          |
-S7 : Time Rabi Oscillation  #! qblox test okay           |
-S8 : Single Shot   #! qblox test okay                    |
-S9 : Ramsey T2   #! qblox test okay                      |
-S9b: CPMG (Qblox only)                                   |
-S10: Spin Echo T2   #! qblox test okay                   |
-S11: T1   #! qblox test okay                             |
+S5 : Flux dependent Qubit spectrum                       |--done
+S6 : Power Rabi Oscillation                              |--done
+S7 : Time Rabi Oscillation                               |--done
+S8 : Single Shot   #! qblox test okay                    |--90 %
+S9 : Ramsey T2   #! qblox test okay                      |--90 %
+S9b: CPMG (Qblox only)                                   |--done
+S10: Spin Echo T2   #! qblox test okay                   |--90 %
+S11: T1   #! qblox test okay                             |--90 %
                                                          
 -------- AuxiliaryMeas -------                          ---
 A1 : Zgate T1   #! qblox test okay                       |
-A2 : Time Monitor  #! qblox test okay                    |
+A2 : Time Monitor  #! qblox test okay                    |--50 %
 
 -------- Calibrations --------                          ---
 C1 : XYF calibration   #! qblox test okay                |
@@ -51,8 +51,8 @@ R2M: 2Q Randomized Benchmarking (QM only)                |
 ####    Generation Eequirements    ####
 #######################################
 
-What_exp_tag:str = 's5'
-What_qubits_join:list = []   # Qblox fill it, QM keep it empty !
+What_exp_tag:str = 'A2'
+What_qubits_join:list = []   # Qblox fill it, QM keep it empty! And if it's S0 also keep it empty for both system.
 creat_survey_in_this_folder:str = "/home/asqcmeas/MeasConfigs"
 
 # If you want run your customized meas script, fill the absolute path in

@@ -6,8 +6,8 @@ from config_component.configuration import Configuration
 from ab.QM_config_dynamic import initializer
 from exp.save_data import DataPackager
 from qblox_drive_AS.support.UserFriend import *
-from xarray import open_dataset
-from numpy import ndarray
+from xarray import open_dataset, Dataset
+from numpy import ndarray, diff
 
 
 
@@ -37,6 +37,7 @@ class CavitySearch(ExpSpirit):
         return "S1"
 
     def set_variables(self):
+        self.init_macro = ExpParas("init_macro","dict",4,message="Make sure it's in the quotes (\"\"),initializer operation: initializer(time=400e-6,mode='wait')",pre_fill={"time":2e-6,"mode":'wait'})
         self.ro_elements = ExpParas("ro_elements","list",4,message="Fill in who to read like: ['q0_ro',...]",pre_fill=[])
         self.freq_range = ExpParas("freq_range","list",3,message="QM span given value from LO, Qblox sweep what freq you give. rule: [start, end]")
         self.freq_ptsORstep = ExpParas("freq_ptsORstep","float",1,message="According to sampling function, use step or pts for all qubit",pre_fill=100)
@@ -61,6 +62,7 @@ class CavitySearch(ExpSpirit):
                 slightly_print(self.EXP.RawDataPath)
 
             case 'qm':
+                self.init_macro = eval(self.init_macro)
                 from exp.rofreq_sweep import ROFreqSweep
                 config_obj:Configuration = self.connections[0]
                 spec:ChannelInfo = self.connections[1]
@@ -68,7 +70,7 @@ class CavitySearch(ExpSpirit):
                 qmm, _ = spec.buildup_qmm()
                 self.EXP = ROFreqSweep(config, qmm)
                 self.EXP.ro_elements = self.ro_elements
-                self.EXP.initializer = initializer(2000,mode='wait')
+                self.EXP.initializer = initializer(self.init_macro["time"]*1e9,mode=self.init_macro["mode"])
                 """ freq unit in MHz """
                 self.EXP.freq_range = (float(self.freq_range[0])*1e-6, float(self.freq_range[1])*1e-6)
                 
@@ -163,6 +165,7 @@ class PowerCavity(ExpSpirit):
         return "S2"
 
     def set_variables(self):
+        self.init_macro = ExpParas("init_macro","dict",4,message="Make sure it's in the quotes (\"\"),initializer operation: initializer(time=400e-6,mode='wait')",pre_fill={"time":10e-6,"mode":'wait'})
         self.ro_elements = ExpParas("ro_elements","list",4,message="Fill in who to read like: ['q0_ro',...]",pre_fill=[])
         self.freq_range = ExpParas("freq_range","list",3,message="Values to span. rule: [start, end]")
         self.freq_ptsORstep = ExpParas("freq_ptsORstep","int",1,message="Depends on Freq sampling func set in step or pts.")
@@ -189,6 +192,7 @@ class PowerCavity(ExpSpirit):
                 slightly_print(self.EXP.RawDataPath)
 
             case 'qm':
+                self.init_macro = eval(self.init_macro)
                 from exp.rofreq_sweep_power_dep import ROFreqSweepPowerDep
                 config_obj:Configuration = self.connections[0]
                 spec:ChannelInfo = self.connections[1]
@@ -196,7 +200,7 @@ class PowerCavity(ExpSpirit):
                 qmm, _ = spec.buildup_qmm()
                 self.EXP = ROFreqSweepPowerDep(config, qmm)
                 self.EXP.ro_elements = self.ro_elements
-                self.EXP.initializer = initializer(2000,mode='wait')
+                self.EXP.initializer = initializer(self.init_macro["time"]*1e9,mode=self.init_macro["mode"])
                 """ freq unit in MHz """
                 self.EXP.freq_range = (float(self.freq_range[0])*1e-6, float(self.freq_range[1])*1e-6)
                 print(f"freq range= {self.EXP.freq_range}")
@@ -204,7 +208,7 @@ class PowerCavity(ExpSpirit):
                     self.EXP.freq_resolution = self.freq_ptsORstep*1e-6
                     print(f'arange ,step= {self.EXP.freq_resolution}')
                 else:
-                    self.EXP.freq_resolution = (abs(float(self.freq_range[1])-float(self.freq_range[0]))/float(self.freq_ptsORstep))*1e-6
+                    self.EXP.freq_resolution = abs(diff(self.freq_range))[0]/self.freq_ptsORstep
                 """ power """
                 if self.power_sampling_func in ['linspace','logspace']:
                     self.EXP.amp_scale = self.power_sampling_func[:3]
@@ -296,6 +300,7 @@ class FluxCavity(ExpSpirit):
         return "S3"
 
     def set_variables(self):
+        self.init_macro = ExpParas("init_macro","dict",4,message="Make sure it's in the quotes (\"\"),initializer operation: initializer(time=400e-6,mode='wait')",pre_fill={"time":10e-6,"mode":'wait'})
         self.ro_elements = ExpParas("ro_elements","list",4,message="Fill in who to read like: ['q0_ro',...]",pre_fill=[])
         self.freq_range = ExpParas("freq_range","list",3,message="Values to span. rule: [start, end]")
         self.freq_ptsORstep = ExpParas("freq_ptsORstep","int",1,message="Depends on Freq sampling func set in step or pts.")
@@ -329,23 +334,24 @@ class FluxCavity(ExpSpirit):
                 eyeson_print("Raw data located:")
                 slightly_print(self.EXP.RawDataPath)
             case 'qm':
+                self.init_macro = eval(self.init_macro)
                 from exp.rofreq_sweep_flux_dep import freq_sweep_flux_dep
                 config_obj:Configuration = self.connections[0]
                 spec:ChannelInfo = self.connections[1]
                 config = config_obj.get_config()
                 qmm, _ = spec.buildup_qmm()
-                init_macro = initializer(10000,mode='wait')
+                init_macro = initializer(self.init_macro["time"]*1e9,mode=self.init_macro["mode"])
                 z_amp_ratio_range = (self.flux_range[0],self.flux_range[1])
                 freq_range = (self.freq_range[0]*1e-6,self.freq_range[1]*1e-6)
                 if self.freq_sampling_func == 'linspace':
-                    freq_resolution = abs(self.EXP.freq_range[-1]-self.EXP.freq_range[0])/self.freq_ptsORstep
+                    freq_resolution = abs(diff(self.EXP.freq_range))[0]/self.freq_ptsORstep
                 else:
                     freq_resolution = self.freq_ptsORstep * 1e-6
 
                 if self.flux_sampling_func == 'arange':
                     z_amp_ratio_resolution = self.flux_range[-1]
                 else:
-                    z_amp_ratio_resolution = abs(z_amp_ratio_range[0]-z_amp_ratio_range[-1])/self.flux_range[-1]
+                    z_amp_ratio_resolution = abs(diff(z_amp_ratio_range))[0]/self.flux_range[-1]
                 
                 self.dataset = freq_sweep_flux_dep(self.ro_elements,self.bias_targets,config, qmm, self.avg_n, 1, freq_range, z_amp_ratio_range,z_amp_ratio_resolution,freq_resolution,init_macro)
                 save_path = os.path.join(self.save_data_folder,f"FluxCavity_{self.JOBID}.nc")
@@ -425,6 +431,7 @@ class FluxQubitSpectrum(ExpSpirit):
         return "S5"
 
     def set_variables(self):
+        self.init_macro = ExpParas("init_macro","dict",4,message="Make sure it's in the quotes (\"\"),initializer operation: initializer(time=400e-6,mode='wait')",pre_fill={"time":10e-6,"mode":'wait'})
         self.ro_elements = ExpParas("ro_elements","list",4,message="Fill in who to read like: ['q0_ro',...]",pre_fill=[])
         self.xy_elements = ExpParas("xy_elements","list",4,message="Fill in who to drive like: ['q0_xy',...]",pre_fill=[])
         self.driving_time = ExpParas("driving_time","float",4,message="XY driving time.",pre_fill=20e-6)
@@ -458,6 +465,7 @@ class FluxQubitSpectrum(ExpSpirit):
                 eyeson_print("Raw data located:")
                 slightly_print(self.EXP.RawDataPath)
             case 'qm':
+                self.init_macro = eval(self.init_macro)
                 from exp.xyfreq_sweep_flux_dep import XYFreqFlux
                 config_obj:Configuration = self.connections[0]
                 spec:ChannelInfo = self.connections[1]
@@ -475,16 +483,16 @@ class FluxQubitSpectrum(ExpSpirit):
                 self.EXP.z_amp_ratio_range = (self.flux_range[0],self.flux_range[1])
                 self.EXP.freq_range = (self.freq_range[0]*1e-6,self.freq_range[1]*1e-6)
                 if self.freq_sampling_func == 'linspace':
-                    self.EXP.freq_resolution = abs(self.EXP.freq_range[-1]-self.EXP.freq_range[0])/self.freq_ptsORstep
+                    self.EXP.freq_resolution = abs(diff(self.EXP.freq_range))[0]/self.freq_ptsORstep
                 else:
                     self.EXP.freq_resolution = self.freq_ptsORstep * 1e-6
 
                 if self.flux_sampling_func == 'arange':
                     self.EXP.z_amp_ratio_resolution = self.flux_range[-1]
                 else:
-                    self.EXP.z_amp_ratio_resolution = abs(self.EXP.z_amp_ratio_range[0]-self.EXP.z_amp_ratio_range[-1])/self.flux_range[-1]
+                    self.EXP.z_amp_ratio_resolution = abs(diff(self.EXP.z_amp_ratio_range))[0]/self.flux_range[-1]
                 
-                self.EXP.initializer = initializer(10000,mode='wait')
+                self.EXP.initializer = initializer(self.init_macro["time"]*1e9,mode=self.init_macro["mode"])
                 self.dataset = self.EXP.run( self.avg_n )
                 save_path = os.path.join(self.save_data_folder,f"FluxQubitSpec_{self.JOBID}.nc")
                 self.dataset.to_netcdf(save_path)
@@ -522,6 +530,7 @@ class Power2tone(ExpSpirit):
         return "S4"
 
     def set_variables(self):
+        self.init_macro = ExpParas("init_macro","dict",4,message="Make sure it's in the quotes (\"\"),initializer operation: initializer(time=400e-6,mode='wait')",pre_fill={"time":10e-6,"mode":'wait'})
         self.ro_elements = ExpParas("ro_elements","list",4,message="Fill in who to read like: ['q0_ro',...]",pre_fill=[])
         self.xy_elements = ExpParas("xy_elements","list",4,message="Fill in who to drive like: ['q0_xy',...]",pre_fill=[])
         self.driving_time = ExpParas("driving_time","float",4,message="XY driving time.",pre_fill=20e-6)
@@ -551,6 +560,7 @@ class Power2tone(ExpSpirit):
                 eyeson_print("Raw data located:")
                 slightly_print(self.EXP.RawDataPath)
             case 'qm':
+                self.init_macro = eval(self.init_macro)
                 from exp.xyfreq_sweep import XYFreq
                 config_obj:Configuration = self.connections[0]
                 spec:ChannelInfo = self.connections[1]
@@ -564,11 +574,11 @@ class Power2tone(ExpSpirit):
                 self.EXP.sweep_type = "overlap" if self.ROXYoverlap else "z_pulse"
                 self.EXP.freq_range = (self.freq_range[0]*1e-6,self.freq_range[1]*1e-6)
                 if self.freq_sampling_func == 'linspace':
-                    self.EXP.freq_resolution = abs(self.EXP.freq_range[-1]-self.EXP.freq_range[0])/self.freq_ptsORstep
+                    self.EXP.freq_resolution = abs(diff(self.EXP.freq_range))[0]/self.freq_ptsORstep
                 else:
                     self.EXP.freq_resolution = self.freq_ptsORstep * 1e-6
                 
-                self.EXP.initializer = initializer(10000,mode='wait')
+                self.EXP.initializer = initializer(self.init_macro["time"]*1e9,mode=self.init_macro["mode"])
                 self.dataset = self.EXP.run( self.avg_n )
                 save_path = os.path.join(self.save_data_folder,f"TwoTone_{self.JOBID}.nc")
                 self.dataset.to_netcdf(save_path)
@@ -599,7 +609,7 @@ class Power2tone(ExpSpirit):
                     figs = painter.plot(dataset,"Qubit_Spectrum")
                     dp.save_figs( figs )
 
-# S6
+# S6, done
 class PowerRabi(ExpSpirit):
     def __init__(self):
         super().__init__()
@@ -608,8 +618,13 @@ class PowerRabi(ExpSpirit):
         return "S6"
 
     def set_variables(self):
+        self.init_macro = ExpParas("init_macro","dict",4,message="Make sure it's in the quotes (\"\"),initializer operation: initializer(time=400e-6,mode='wait')",pre_fill={"time":100e-6,"mode":'wait'})
+        self.ro_elements = ExpParas("ro_elements","list",4,message="Fill in who to read like: ['q0_ro',...]",pre_fill=[])
+        self.xy_elements = ExpParas("xy_elements","list",4,message="Fill in who to drive like: ['q0_xy',...]",pre_fill=[])
+        self.freq_range = ExpParas("freq_range","list",3,message="Values to span. rule: [start, end, resolution] like: [-3e6, 3e6, 1e6]",pre_fill=[])
+
         self.pi_amp = ExpParas("pi_amp","list",3,message="amp values span. rule: [start, end] like: [-0.6, 0.6].")
-        self.pi_duration = ExpParas("pi_duration","float",3,message="how long is your pi-pulse ?")
+        self.pi_duration = ExpParas("pi_duration","float",3,message="Only for Qblox, how long is your pi-pulse ?",pre_fill=40e-9)
         # self.OSmode = ExpParas("OSmode","int",1,message="booling value set 0 for False or 1 for True, Use one-shot or not ?")
         self.avg_n = ExpParas("avg_n","int",1,pre_fill=200)
         self.amp_sampling_func = ExpParas("amp_sampling_func","func",1,message="sampling function options: 'linspace', 'arange'.",pre_fill='linspace')
@@ -621,16 +636,37 @@ class PowerRabi(ExpSpirit):
 
 
     def start_measurement(self):
-
-        self.target_qs = list(self.pi_amp.keys())
         match self.machine_type.lower():
             case 'qblox':
                 from qblox_drive_AS.support.ExpFrames import PowerRabiOsci
+                self.target_qs = list(self.pi_amp.keys())
                 self.EXP = PowerRabiOsci(QD_path=self.connections[0],data_folder=self.save_data_folder,JOBID=self.JOBID)
                 self.EXP.SetParameters(self.pi_amp, self.pi_duration, self.amp_sampling_func, self.pi_amp_ptsORstep,self.avg_n,execution=True)
                 self.EXP.WorkFlow()
                 eyeson_print("Raw data located:")
                 slightly_print(self.EXP.RawDataPath)
+            case 'qm':
+                self.init_macro = eval(self.init_macro)
+                from exp.rabi import RabiTime
+                config_obj:Configuration = self.connections[0]
+                spec:ChannelInfo = self.connections[1]
+                config = config_obj.get_config()
+                qmm, _ = spec.buildup_qmm()
+                self.EXP = RabiTime(config, qmm)
+                self.EXP.initializer = initializer(self.init_macro["time"]*1e9,mode=self.init_macro["mode"])
+                self.EXP.process = "power"
+                self.EXP.ro_elements = self.ro_elements
+                self.EXP.xy_elements = self.xy_elements
+                self.EXP.amp_range = (self.pi_amp[0], self.pi_amp[1]) 
+                self.EXP.freq_range = (self.freq_range[0]*1e-6, self.freq_range[1]*1e-6)
+                self.EXP.freq_resolution = self.freq_range[-1]*1e-6
+                if self.amp_sampling_func == 'arange':
+                    self.EXP.amp_resolution = self.pi_amp_ptsORstep
+                else:
+                    self.EXP.amp_resolution = abs(diff(self.EXP.freq_range))[0]/self.pi_amp_ptsORstep
+                self.dataset = self.EXP.run( self.avg_n )
+                save_path = os.path.join(self.save_data_folder,f"detunedPowerRabi_{self.JOBID}.nc")
+                self.dataset.to_netcdf(save_path)
 
             
     
@@ -643,8 +679,23 @@ class PowerRabi(ExpSpirit):
                 data_file = queue_out_items["Data"][0]
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
+            case 'qm':
+                from exp.plotting import PainterRabi
+                raw_data_files = analysis_need["Data"]
+                for file in raw_data_files:
+                    
+                    dataset = open_dataset(file)
+                    for attr in dataset.attrs:
+                        if not isinstance(dataset.attrs[attr], ndarray):
+                            dataset.attrs[attr] = [dataset.attrs[attr]]
+                    
+                    painter = PainterRabi('power')
+                    folder_path, file_name = os.path.split(file)
+                    dp = DataPackager(folder_path,'pic',time_label_type="no_label")
+                    figs = painter.plot(dataset,file_name.split("_")[0])
+                    dp.save_figs( figs )
 
-# S7
+# S7, done
 class TimeRabi(ExpSpirit):
     def __init__(self):
         super().__init__()
@@ -653,8 +704,13 @@ class TimeRabi(ExpSpirit):
         return "S7"
 
     def set_variables(self):
-        self.pi_amp = ExpParas("pi_amp","float",3,message="amp for your pi-pulse.")
-        self.pi_duration = ExpParas("pi_duration","list",3,message="amp values span. rule: [start, end] like: [0, 200e-9].")
+        self.init_macro = ExpParas("init_macro","dict",4,message="Make sure it's in the quotes (\"\"),initializer operation: initializer(time=400e-6,mode='wait')",pre_fill={"time":100e-6,"mode":'wait'})
+        self.ro_elements = ExpParas("ro_elements","list",4,message="Fill in who to read like: ['q0_ro',...]",pre_fill=[])
+        self.xy_elements = ExpParas("xy_elements","list",4,message="Fill in who to drive like: ['q0_xy',...]",pre_fill=[])
+        self.freq_range = ExpParas("freq_range","list",3,message="Values to span. rule: [start, end, resolution] like: [-3e6, 3e6, 1e6]",pre_fill=[])
+
+        self.pi_amp = ExpParas("pi_amp","float",3,message="Only for Qblox, amp for your pi-pulse.",pre_fill=0.2)
+        self.pi_duration = ExpParas("pi_duration","list",3,message="pi-len values span. rule: [start, end] like: [0, 200e-9]. ** QM starts from 16e-9 **")
         # self.OSmode = ExpParas("OSmode","int",1,message="booling value set 0 for False or 1 for True, Use one-shot or not ?")
         self.avg_n = ExpParas("avg_n","int",1,pre_fill=200)
         self.duration_sampling_func = ExpParas("duration_sampling_func","func",1,message="sampling function options: 'linspace', 'arange'.",pre_fill='linspace')
@@ -666,16 +722,37 @@ class TimeRabi(ExpSpirit):
 
 
     def start_measurement(self):
-
-        self.target_qs = list(self.pi_amp.keys())
         match self.machine_type.lower():
             case 'qblox':
                 from qblox_drive_AS.support.ExpFrames import TimeRabiOsci
+                self.target_qs = list(self.pi_amp.keys())
                 self.EXP = TimeRabiOsci(QD_path=self.connections[0],data_folder=self.save_data_folder,JOBID=self.JOBID)
                 self.EXP.SetParameters( self.pi_duration, self.pi_amp,self.duration_sampling_func, self.pi_dura_ptsORstep,self.avg_n,execution=True)
                 self.EXP.WorkFlow()
                 eyeson_print("Raw data located:")
                 slightly_print(self.EXP.RawDataPath)
+            case 'qm':
+                self.init_macro = eval(self.init_macro)
+                from exp.rabi import RabiTime
+                config_obj:Configuration = self.connections[0]
+                spec:ChannelInfo = self.connections[1]
+                config = config_obj.get_config()
+                qmm, _ = spec.buildup_qmm()
+                self.EXP = RabiTime(config, qmm)
+                self.EXP.initializer = initializer(self.init_macro["time"]*1e9,mode=self.init_macro["mode"])
+                self.EXP.process = "time"
+                self.EXP.ro_elements = self.ro_elements
+                self.EXP.xy_elements = self.xy_elements
+                self.EXP.time_range = (self.pi_duration[0]*1e9, self.pi_duration[1]*1e9) 
+                self.EXP.freq_range = (self.freq_range[0]*1e-6, self.freq_range[1]*1e-6)
+                self.EXP.freq_resolution = self.freq_range[-1]*1e-6
+                if self.duration_sampling_func == 'arange':
+                    self.EXP.time_resolution = self.pi_dura_ptsORstep*1e9
+                else:
+                    self.EXP.time_resolution = abs(diff(self.EXP.freq_range))[0]/self.pi_dura_ptsORstep
+                self.dataset = self.EXP.run( self.avg_n )
+                save_path = os.path.join(self.save_data_folder,f"detunedTimeRabi_{self.JOBID}.nc")
+                self.dataset.to_netcdf(save_path)
 
             
     
@@ -688,8 +765,23 @@ class TimeRabi(ExpSpirit):
                 data_file = queue_out_items["Data"][0]
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
+            case 'qm':
+                from exp.plotting import PainterRabi
+                raw_data_files = analysis_need["Data"]
+                for file in raw_data_files:
+                    
+                    dataset = open_dataset(file)
+                    for attr in dataset.attrs:
+                        if not isinstance(dataset.attrs[attr], ndarray):
+                            dataset.attrs[attr] = [dataset.attrs[attr]]
+                    
+                    painter = PainterRabi('time')
+                    folder_path, file_name = os.path.split(file)
+                    dp = DataPackager(folder_path,'pic',time_label_type="no_label")
+                    figs = painter.plot(dataset,file_name.split("_")[0])
+                    dp.save_figs( figs )
 
-# S8
+# S8, need qm test on sample
 class SingleShot(ExpSpirit):
     def __init__(self):
         super().__init__()
@@ -699,7 +791,10 @@ class SingleShot(ExpSpirit):
         return "S8"
 
     def set_variables(self):
-        self.histo_counts = ExpParas("histo_counts","int",1,message="repeat times of histogram",pre_fill=1)
+        self.init_macro = ExpParas("init_macro","dict",4,message="Make sure it's in the quotes (\"\"),initializer operation: initializer(time=400e-6,mode='wait')",pre_fill={"time":400e-6,"mode":'wait'})
+        self.ro_elements = ExpParas("ro_elements","list",4,message="Fill in who to read like: ['q0_ro',...]",pre_fill=[])
+        self.xy_elements = ExpParas("xy_elements","list",4,message="Fill in who to drive like: ['q0_xy',...]",pre_fill=[])
+        self.histo_counts = ExpParas("histo_counts","int",1,message="Only for Qblox, repeat times of histogram",pre_fill=1)
         self.shots = ExpParas("shots","int",1,pre_fill=10000)
 
 
@@ -717,6 +812,17 @@ class SingleShot(ExpSpirit):
                 self.EXP.WorkFlow()
                 eyeson_print("Raw data located:")
                 slightly_print(self.EXP.RawDataPath)
+            case 'qm':
+                self.init_macro = eval(self.init_macro)
+                from exp.readout_fidelity import readout_fidelity
+                config_obj:Configuration = self.connections[0]
+                spec:ChannelInfo = self.connections[1]
+                config = config_obj.get_config()
+                qmm, _ = spec.buildup_qmm()
+                init_macro = initializer(self.init_macro["time"]*1e9,mode=self.init_macro["mode"])
+                self.dataset = readout_fidelity( self.xy_elements, self.ro_elements, self.shots, config, qmm, init_macro) 
+                save_path = os.path.join(self.save_data_folder,f"ROfidelity_{self.JOBID}.nc")
+                self.dataset.to_netcdf(save_path)
 
     
     def start_analysis(self,analysis_need:dict=None,*args):
@@ -728,8 +834,22 @@ class SingleShot(ExpSpirit):
                 data_file = queue_out_items["Data"][0]
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
+            case 'qm':
+                from exp.plotting import plot_and_save_readout_fidelity
+                raw_data_files = analysis_need["Data"]
+                for file in raw_data_files:
+                    
+                    dataset = open_dataset(file)
+                    for attr in dataset.attrs:
+                        if not isinstance(dataset.attrs[attr], ndarray):
+                            dataset.attrs[attr] = [dataset.attrs[attr]]
+                    
+                    folder_path, file_name = os.path.split(file)
+                    dp = DataPackager(folder_path,'pic',time_label_type="no_label")
+                    figs = plot_and_save_readout_fidelity(dataset,file_name.split("_")[0])
+                    dp.save_figs( figs )
 
-# S9
+# S9, need qm test on sample
 class RamseyT2(ExpSpirit):
     def __init__(self):
         super().__init__()
@@ -738,29 +858,69 @@ class RamseyT2(ExpSpirit):
         return "S9"
 
     def set_variables(self):
-        self.time_range = ExpParas("time_range","list",3,message="evolution time span. rule: [start, end] like: [0, 20e-6].")
+        self.init_macro = ExpParas("init_macro","dict",4,message="Make sure it's in the quotes (\"\"),initializer operation: initializer(time=400e-6,mode='wait')",pre_fill={"time":300e-6,"mode":'wait'})
+        self.ro_elements = ExpParas("ro_elements","list",4,message="Fill in who to read like: ['q0_ro',...]",pre_fill=[])
+        self.xy_elements = ExpParas("xy_elements","list",4,message="Fill in who to drive like: ['q0_xy',...]",pre_fill=[])
+        self.virtual_detune = ExpParas("virtual_detune","int",4,message="virtual detuning like: 0.5e6",pre_fill=0e6)
+        
+        self.max_evo_time = ExpParas("max_evo_time","int",3,message="evolution time maximum like: 20e-6.")
         # self.OSmode = ExpParas("OSmode","int",1,message="booling value set 0 for False or 1 for True, Use one-shot or not ?")
         self.avg_n = ExpParas("avg_n","int",1,pre_fill=300)
         self.time_sampling_func = ExpParas("time_sampling_func","func",1,message="sampling function options: 'linspace', 'arange', 'logspace'.",pre_fill="linspace")
         self.time_ptsORstep = ExpParas("time_ptsORstep","int",1,message="Depends on sampling func set in step or pts.",pre_fill=100)
-        self.histo_counts = ExpParas("histo_counts","int",1,message="repeat times of histogram, <101 use FPGA otherwies use while loop.",pre_fill=1)
+        self.histo_counts = ExpParas("histo_counts","int",1,message="repeat times of histogram. QM always use FPGA. Qblox use FPGA runnning while it's less than 101, otherwise use while-loop.",pre_fill=1)
 
     def provide_ExpSurveyInfo(self):
         self.set_variables()
 
 
     def start_measurement(self):
-
-        self.target_qs = list(self.time_range.keys())
         match self.machine_type.lower():
             case 'qblox':
+                self.target_qs = list(self.max_evo_time.keys())
+                self.time_range = {}
+                for q in self.target_qs:
+                    self.time_range[q] = [0, self.max_evo_time[q]]
                 from qblox_drive_AS.support.ExpFrames import Ramsey
                 self.EXP = Ramsey(QD_path=self.connections[0],data_folder=self.save_data_folder,JOBID=self.JOBID)
                 self.EXP.SetParameters( self.time_range, self.time_sampling_func,self.time_ptsORstep, self.histo_counts,self.avg_n,execution=True)
                 self.EXP.WorkFlow()
                 eyeson_print("Raw data located:")
                 slightly_print(self.EXP.RawDataPath)
-
+            case 'qm':
+                self.init_macro = eval(self.init_macro)
+                from exp.ramsey import Ramsey
+                config_obj:Configuration = self.connections[0]
+                spec:ChannelInfo = self.connections[1]
+                config = config_obj.get_config()
+                qmm, _ = spec.buildup_qmm()
+                self.EXP = Ramsey(config, qmm)
+                self.EXP.shot_num = self.avg_n
+                self.EXP.initializer = initializer(self.init_macro["time"]*1e9,mode=self.init_macro["mode"])
+                self.EXP.ro_elements = self.ro_elements
+                self.EXP.xy_elements = self.xy_elements
+                self.EXP.virtual_detune = self.virtual_detune*1e-6
+                self.EXP.max_time = self.max_evo_time*1e6
+                if self.time_sampling_func == "arange":
+                    self.EXP.time_resolution = self.time_ptsORstep*1e6
+                elif self.time_sampling_func == "linspace":
+                    self.EXP.time_resolution = self.EXP.max_time/self.time_ptsORstep
+                else:
+                    raise ValueError(f"Sorry, The given sampling function = {self.time_sampling_func} is temporarily unsupported !")
+                
+                if self.histo_counts == 1:
+                    self.dataset = self.EXP.run()
+                    save_path = os.path.join(self.save_data_folder,f"RamseyT2_{self.JOBID}.nc")
+                    
+                else:
+                    from exp.repetition_measurement import RepetitionMeasurement
+                    re_exp = RepetitionMeasurement()
+                    re_exp.exp_list = [self.EXP]
+                    re_exp.exp_name = ["T2"]
+                    self.dataset:Dataset = re_exp.run(self.histo_counts)[re_exp.exp_name[0]]
+                    save_path = os.path.join(self.save_data_folder,f"RamseyT2Rep_{self.JOBID}.nc")
+                
+                self.dataset.to_netcdf(save_path)
             
     
     def start_analysis(self,analysis_need:dict=None,*args):
@@ -772,8 +932,27 @@ class RamseyT2(ExpSpirit):
                 data_file = queue_out_items["Data"][0]
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
+            case 'qm':
+                from exp.plotting import PainterT2Ramsey, PainterT2Repeat
+                raw_data_files = analysis_need["Data"]
+                for file in raw_data_files:
+                    
+                    dataset = open_dataset(file)
+                    for attr in dataset.attrs:
+                        if not isinstance(dataset.attrs[attr], ndarray):
+                            dataset.attrs[attr] = [dataset.attrs[attr]]
+                    
+                    folder_path, file_name = os.path.split(file)
+                    if 'rep' not in file_name.lower():
+                        painter = PainterT2Ramsey()
+                    else:
+                        painter = PainterT2Repeat()
 
-# S10
+                    dp = DataPackager(folder_path,'pic',time_label_type="no_label")
+                    figs = painter.plot(dataset,file_name.split("_")[0])
+                    dp.save_figs( figs )
+
+# S10, need qm test on sample
 class SpinEchoT2(ExpSpirit):
     def __init__(self):
         super().__init__()
@@ -782,12 +961,15 @@ class SpinEchoT2(ExpSpirit):
         return "S10"
 
     def set_variables(self):
-        self.time_range = ExpParas("time_range","list",3,message="evolution time span. rule: [start, end] like: [0, 20e-6].")
+        self.init_macro = ExpParas("init_macro","dict",4,message="Make sure it's in the quotes (\"\"),initializer operation: initializer(time=400e-6,mode='wait')",pre_fill={"time":300e-6,"mode":'wait'})
+        self.ro_elements = ExpParas("ro_elements","list",4,message="Fill in who to read like: ['q0_ro',...]",pre_fill=[])
+        self.xy_elements = ExpParas("xy_elements","list",4,message="Fill in who to drive like: ['q0_xy',...]",pre_fill=[])
+        self.max_evo_time = ExpParas("max_evo_time","int",3,message="evolution time maximum like: 20e-6.")
         # self.OSmode = ExpParas("OSmode","int",1,message="booling value set 0 for False or 1 for True, Use one-shot or not ?")
         self.avg_n = ExpParas("avg_n","int",1,pre_fill=300)
         self.time_sampling_func = ExpParas("time_sampling_func","func",1,message="sampling function options: 'linspace', 'arange', 'logspace'.",pre_fill="linspace")
         self.time_ptsORstep = ExpParas("time_ptsORstep","int",1,message="Depends on sampling func set in step or pts.",pre_fill=100)
-        self.histo_counts = ExpParas("histo_counts","int",1,message="repeat times of histogram, <101 use FPGA otherwies use while loop.",pre_fill=1)
+        self.histo_counts = ExpParas("histo_counts","int",1,message="repeat times of histogram. QM always use FPGA. Qblox use FPGA runnning while it's less than 101, otherwise use while-loop.",pre_fill=1)
 
     def provide_ExpSurveyInfo(self):
         self.set_variables()
@@ -795,15 +977,54 @@ class SpinEchoT2(ExpSpirit):
 
     def start_measurement(self):
 
-        self.target_qs = list(self.time_range.keys())
+        
         match self.machine_type.lower():
             case 'qblox':
+                self.target_qs = list(self.max_evo_time.keys())
+                self.time_range = {}
+                for q in self.target_qs:
+                    self.time_range[q] = [0, self.max_evo_time[q]]
+
                 from qblox_drive_AS.support.ExpFrames import SpinEcho
                 self.EXP = SpinEcho(QD_path=self.connections[0],data_folder=self.save_data_folder,JOBID=self.JOBID)
                 self.EXP.SetParameters( self.time_range, self.time_sampling_func,self.time_ptsORstep, self.histo_counts,self.avg_n,execution=True)
                 self.EXP.WorkFlow()
                 eyeson_print("Raw data located:")
                 slightly_print(self.EXP.RawDataPath)
+            case 'qm':
+                self.init_macro = eval(self.init_macro)
+                from exp.single_spin_echo import SpinEcho
+                config_obj:Configuration = self.connections[0]
+                spec:ChannelInfo = self.connections[1]
+                config = config_obj.get_config()
+                qmm, _ = spec.buildup_qmm()
+                self.EXP = SpinEcho(config, qmm)
+                self.EXP.shot_num = self.avg_n
+                self.EXP.initializer = initializer(self.init_macro["time"]*1e9,mode=self.init_macro["mode"])
+                self.EXP.ro_elements = self.ro_elements
+                self.EXP.xy_elements = self.xy_elements
+                
+                self.EXP.time_range = (40, self.max_evo_time*1e6)
+                if self.time_sampling_func == "arange":
+                    self.EXP.time_resolution = self.time_ptsORstep*1e6
+                elif self.time_sampling_func == "linspace":
+                    self.EXP.time_resolution = abs(diff(self.EXP.time_range))[0]/self.time_ptsORstep
+                else:
+                    raise ValueError(f"Sorry, The given sampling function = {self.time_sampling_func} is temporarily unsupported !")
+                
+                if self.histo_counts == 1:
+                    self.dataset = self.EXP.run()
+                    save_path = os.path.join(self.save_data_folder,f"SpinEcho_{self.JOBID}.nc")
+                    
+                else:
+                    from exp.repetition_measurement import RepetitionMeasurement
+                    re_exp = RepetitionMeasurement()
+                    re_exp.exp_list = [self.EXP]
+                    re_exp.exp_name = ["spin_echo"]
+                    self.dataset:Dataset = re_exp.run(self.histo_counts)[re_exp.exp_name[0]]
+                    save_path = os.path.join(self.save_data_folder,f"SpinEchoRep_{self.JOBID}.nc")
+                
+                self.dataset.to_netcdf(save_path)
 
             
     
@@ -817,7 +1038,28 @@ class SpinEchoT2(ExpSpirit):
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
 
-# S9b
+            case 'qm':
+                from exp.plotting import PainterT2SpinEcho, PainterT2Repeat
+                raw_data_files = analysis_need["Data"]
+                for file in raw_data_files:
+                    
+                    dataset = open_dataset(file)
+                    for attr in dataset.attrs:
+                        if not isinstance(dataset.attrs[attr], ndarray):
+                            dataset.attrs[attr] = [dataset.attrs[attr]]
+                    
+                    folder_path, file_name = os.path.split(file)
+                    if 'rep' not in file_name.lower():
+                        painter = PainterT2SpinEcho()
+                    else:
+                        painter = PainterT2Repeat()
+
+                    dp = DataPackager(folder_path,'pic',time_label_type="no_label")
+                    figs = painter.plot(dataset,file_name.split("_")[0])
+                    dp.save_figs( figs )
+
+
+# S9b, done
 class CPMG(ExpSpirit):
     def __init__(self):
         super().__init__()
@@ -826,7 +1068,7 @@ class CPMG(ExpSpirit):
         return "S9b"
 
     def set_variables(self):
-        self.time_range = ExpParas("time_range","list",3,message="evolution time span. rule: [start, end] like: [0, 20e-6].")
+        self.max_evo_time = ExpParas("max_evo_time","int",3,message="evolution time maximum like: 20e-6.")
         self.pi_num = ExpParas("pi_num","int",2,message="how many pi-pulses between your Ramsey ?")
         # self.OSmode = ExpParas("OSmode","int",1,message="booling value set 0 for False or 1 for True, Use one-shot or not ?")
         self.avg_n = ExpParas("avg_n","int",1,pre_fill=300)
@@ -840,13 +1082,15 @@ class CPMG(ExpSpirit):
 
     def start_measurement(self):
                   
-        self.target_qs = list(self.time_range.keys())
         match self.machine_type.lower():
             case 'qblox':
                 from qblox_drive_AS.support.ExpFrames import CPMG
                 pi_num = {}
+                self.time_range = {}
+                self.target_qs = list(self.max_evo_time.keys())
                 for q in self.target_qs:
                     pi_num[q] = self.pi_num
+                    self.time_range[q] = [0, self.max_evo_time[q]]
 
                 self.EXP = CPMG(QD_path=self.connections[0],data_folder=self.save_data_folder,JOBID=self.JOBID)
                 self.EXP.SetParameters( self.time_range, pi_num, self.time_sampling_func,self.time_ptsORstep, self.histo_counts,self.avg_n,execution=True)
@@ -867,7 +1111,7 @@ class CPMG(ExpSpirit):
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
 
-# S11
+# S11, need qm test on sample
 class EnergyRelaxation(ExpSpirit):
     def __init__(self):
         super().__init__()
@@ -876,7 +1120,11 @@ class EnergyRelaxation(ExpSpirit):
         return "S11"
 
     def set_variables(self):
-        self.time_range = ExpParas("time_range","list",3,message="evolution time span. rule: [start, end] like: [0, 20e-6].")
+        self.init_macro = ExpParas("init_macro","dict",4,message="Make sure it's in the quotes (\"\"),initializer operation: initializer(time=400e-6,mode='wait')",pre_fill={"time":300e-6,"mode":'wait'})
+        self.ro_elements = ExpParas("ro_elements","list",4,message="Fill in who to read like: ['q0_ro',...]",pre_fill=[])
+        self.xy_elements = ExpParas("xy_elements","list",4,message="Fill in who to drive like: ['q0_xy',...]",pre_fill=[])
+        self.max_evo_time = ExpParas("max_evo_time","int",3,message="evolution time maximum like: 20e-6.")
+        
         # self.OSmode = ExpParas("OSmode","int",1,message="booling value set 0 for False or 1 for True, Use one-shot or not ?")
         self.avg_n = ExpParas("avg_n","int",1,pre_fill=300)
         self.time_sampling_func = ExpParas("time_sampling_func","func",1,message="sampling function options: 'linspace', 'arange', 'logspace'.",pre_fill='linspace')
@@ -889,15 +1137,54 @@ class EnergyRelaxation(ExpSpirit):
 
     def start_measurement(self):
 
-        self.target_qs = list(self.time_range.keys())
+        
         match self.machine_type.lower():
             case 'qblox':
+                self.target_qs = list(self.max_evo_time.keys())
+                self.time_range = {}
+                for q in self.target_qs:
+                    self.time_range[q] = [0, self.max_evo_time[q]]
+                
                 from qblox_drive_AS.support.ExpFrames import EnergyRelaxation
                 self.EXP = EnergyRelaxation(QD_path=self.connections[0],data_folder=self.save_data_folder,JOBID=self.JOBID)
                 self.EXP.SetParameters( self.time_range, self.time_sampling_func,self.time_ptsORstep, self.histo_counts,self.avg_n,execution=True)
                 self.EXP.WorkFlow()
                 eyeson_print("Raw data located:")
                 slightly_print(self.EXP.RawDataPath)
+            case 'qm':
+                self.init_macro = eval(self.init_macro)
+                from exp.relaxation_time import exp_relaxation_time
+                config_obj:Configuration = self.connections[0]
+                spec:ChannelInfo = self.connections[1]
+                config = config_obj.get_config()
+                qmm, _ = spec.buildup_qmm()
+                self.EXP = exp_relaxation_time(config, qmm)
+                self.EXP.shot_num = self.avg_n
+                self.EXP.initializer = initializer(self.init_macro["time"]*1e9,mode=self.init_macro["mode"])
+                self.EXP.ro_elements = self.ro_elements
+                self.EXP.xy_elements = self.xy_elements
+                
+                self.EXP.max_time = self.max_evo_time*1e6
+                if self.time_sampling_func == "arange":
+                    self.EXP.time_resolution = self.time_ptsORstep*1e6
+                elif self.time_sampling_func == "linspace":
+                    self.EXP.time_resolution = self.EXP.max_time/self.time_ptsORstep
+                else:
+                    raise ValueError(f"Sorry, The given sampling function = {self.time_sampling_func} is temporarily unsupported !")
+                
+                if self.histo_counts == 1:
+                    self.dataset = self.EXP.run()
+                    save_path = os.path.join(self.save_data_folder,f"T1relaxation_{self.JOBID}.nc")
+                    
+                else:
+                    from exp.repetition_measurement import RepetitionMeasurement
+                    re_exp = RepetitionMeasurement()
+                    re_exp.exp_list = [self.EXP]
+                    re_exp.exp_name = ["T1_relaxation"]
+                    self.dataset:Dataset = re_exp.run(self.histo_counts)[re_exp.exp_name[0]]
+                    save_path = os.path.join(self.save_data_folder,f"T1relaxationRep_{self.JOBID}.nc")
+                
+                self.dataset.to_netcdf(save_path)
 
             
     
@@ -910,6 +1197,26 @@ class EnergyRelaxation(ExpSpirit):
                 data_file = queue_out_items["Data"][0]
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
+            case 'qm':
+                from exp.plotting import PainterT1Single, PainterT1Repeat
+                raw_data_files = analysis_need["Data"]
+                for file in raw_data_files:
+                    
+                    dataset = open_dataset(file)
+                    for attr in dataset.attrs:
+                        if not isinstance(dataset.attrs[attr], ndarray):
+                            dataset.attrs[attr] = [dataset.attrs[attr]]
+                    
+                    folder_path, file_name = os.path.split(file)
+                    if 'rep' not in file_name.lower():
+                        painter = PainterT1Single()
+                    else:
+                        painter = PainterT1Repeat()
+
+                    dp = DataPackager(folder_path,'pic',time_label_type="no_label")
+                    figs = painter.plot(dataset,file_name.split("_")[0])
+                    dp.save_figs( figs )
+
 
 # C1
 class XYFcalibrator(ExpSpirit):
@@ -1212,7 +1519,7 @@ class ZgateRelaxation(ExpSpirit):
                 QD_path = [os.path.join(config_folder,name) for name in os.listdir(config_folder) if os.path.isfile(os.path.join(config_folder,name)) and os.path.split(name)[-1].split(".")[-1]=='pkl'][0]
                 self.EXP.RunAnalysis(new_QD_path=QD_path,new_file_path=data_file)
 
-# A2
+# A2, qm to be checked 
 class TimeMonitor(ExpSpirit):
     def __init__(self):
         super().__init__()
@@ -1221,15 +1528,19 @@ class TimeMonitor(ExpSpirit):
         return "A2"
 
     def set_variables(self):
-        self.T1_time_range = ExpParas("T1_time_range","list",3,message="T1 evolution time span. rule: [start, end] like: [0, 60e-6]. If you don't wanna do T1 leave it [].")
-        self.T2_time_range = ExpParas("T2_time_range","list",3,message="T2 evolution time span. rule: [start, end] like: [0, 50e-6]. If you don't wanna do T2 leave it [].")
-        self.time_sampling_func = ExpParas("time_sampling_func","func",1,message="sampling function options: 'linspace', 'arange', 'logspace'.",pre_fill='linspace')
-        self.time_ptsORstep = ExpParas("time_ptsORstep","int",1,message="Depends on sampling func set in step or pts.",pre_fill=100)
-        # self.OSmode = ExpParas("OSmode","int",1,message="booling value set 0 for False or 1 for True, Use one-shot or not ?")
-        self.echo_pi_num = ExpParas("echo_pi_num","int",2,message="How many pi-pulse between Ramsey ? 0 for Ramsey T2, 1 for SpinEcho T2, more for CPMG.",pre_fill=0)
-        self.small_detune = ExpParas("small_detune","float",1,message="Only while doing Ramsey, how many driving detuning ? otherwise set None",pre_fill=0)
-        self.OS_shots = ExpParas("OS_shots","int",1,message="Shot number for OneSoht exp. If you don't wanna do OneShot leave it 0.",pre_fill=10000)
+        self.init_macro = ExpParas("init_macro","dict",4,message="Make sure it's in the quotes (\"\"),initializer operation: initializer(time=400e-6,mode='wait')",pre_fill={"time":300e-6,"mode":'wait'})
+        self.ro_elements = ExpParas("ro_elements","list",4,message="Fill in who to read like: ['q0_ro',...]",pre_fill=[])
+        self.xy_elements = ExpParas("xy_elements","list",4,message="Fill in who to drive like: ['q0_xy',...]",pre_fill=[])
 
+        self.T1_max_evo_time = ExpParas("T1_max_evo_time","int",3,message="T1 evolution time maximun like 60e-6. If you don't wanna do T1 leave it 0.")
+        self.T2_max_evo_time = ExpParas("T2_max_evo_time","int",3,message="T2 evolution time maximum like: 50e-6. If you don't wanna do T2 leave it 0.")
+        self.time_sampling_func = ExpParas("time_sampling_func","func",1,message="sampling function options: 'linspace', 'arange', 'logspace', **QM only use 'arange'**.",pre_fill='linspace')
+        self.time_ptsORstep = ExpParas("time_ptsORstep","int",1,message="Depends on sampling func set in step or pts. **QM always sets the resolution**",pre_fill=100)
+        # self.OSmode = ExpParas("OSmode","int",1,message="booling value set 0 for False or 1 for True, Use one-shot or not ?")
+        self.echo_pi_num = ExpParas("echo_pi_num","int",2,message="How many pi-pulse between Ramsey ? 0 for Ramsey T2, 1 for SpinEcho T2, more for CPMG (Qblox only).",pre_fill=0)
+        self.virtual_detune = ExpParas("virtual_detune","float",1,message="Only while doing Ramsey, how many driving detuning ? otherwise set None",pre_fill=0)
+        self.OS_shots = ExpParas("OS_shots","int",1,message="Shot number for OneSoht exp. If you don't wanna do OneShot leave it 0.",pre_fill=10000)
+        self.histo_counts = ExpParas("histo_counts","int",1,message="repeat times. Qblox always uses while-loop",pre_fill=1)
         self.avg_n = ExpParas("avg_n","int",1,pre_fill=500)
 
     def provide_ExpSurveyInfo(self):
@@ -1244,15 +1555,15 @@ class TimeMonitor(ExpSpirit):
                 self.EXP = QubitMonitor(QD_path=self.connections[0],save_dir=self.save_data_folder)
                 # T1 settings
                 self.EXP.T1_time_range = {}
-                for q in self.T1_time_range:
-                    if len(self.T1_time_range[q]) != 0:
-                        self.EXP.T1_time_range[q] = self.T1_time_range[q]
+                for q in self.T1_max_evo_time:
+                    if self.T1_max_evo_time[q] != 0:
+                        self.EXP.T1_time_range[q] = [0, self.T1_max_evo_time[q]]
                 # T2 settings
                 self.EXP.T2_time_range = {}
-                for q in self.T2_time_range:
-                    if len(self.T2_time_range[q]) != 0:
-                        self.EXP.T2_time_range[q] = self.T2_time_range[q]
-                self.EXP.a_little_detune_Hz = self.small_detune  # for all qubit in T2_time_range. Set None if you do SpinEcho or CPMG
+                for q in self.T2_max_evo_time:
+                    if self.T2_max_evo_time[q] != 0:
+                        self.EXP.T2_time_range[q] = [0, self.T2_max_evo_time[q]]
+                self.EXP.a_little_detune_Hz = self.virtual_detune  # for all qubit in T2_time_range. Set None if you do SpinEcho or CPMG
                 self.EXP.echo_pi_num = self.echo_pi_num
                 # SingleShot settings, skip if 0 shot
                 self.EXP.OS_shots = self.OS_shots     
@@ -1268,8 +1579,59 @@ class TimeMonitor(ExpSpirit):
 
 
                 self.EXP.StartMonitoring() # while loop
+            case 'qm':
+                self.init_macro = eval(self.init_macro)
+                from exp.repetition_measurement import RepetitionMeasurement
+                self.EXP = RepetitionMeasurement()
+                self.EXP.exp_list = []
+                self.EXP.exp_name = []
+                config_obj:Configuration = self.connections[0]
+                spec:ChannelInfo = self.connections[1]
+                config = config_obj.get_config()
+                qmm, _ = spec.buildup_qmm()
+                if int(self.T1_max_evo_time) != 0:
+                    from exp.relaxation_time import exp_relaxation_time
+
+                    EXP = exp_relaxation_time(config, qmm)
+                    EXP.max_time = self.T1_max_evo_time*1e6
+                    self.EXP.exp_list.append(EXP)
+                    self.EXP.exp_name.append("T1_relaxation")
+
+                if int(self.T2_max_evo_time) != 0:
+                    if self.echo_pi_num == 0 :
+                        from exp.ramsey import Ramsey
+                        EXP = Ramsey(config, qmm)
+                        EXP.max_time = self.T2_max_evo_time*1e6
+                        EXP.virtual_detune = self.virtual_detune*1e-6
+                        self.EXP.exp_name.append("RamseyT2")
+                    else:
+                        from exp.single_spin_echo import SpinEcho
+                        EXP = SpinEcho(config, qmm)
+                        EXP.time_range = (40, self.T2_max_evo_time*1e6)
+                        self.EXP.exp_name.append("SpinEcho")
+                    self.EXP.exp_list.append(EXP)
+                
+                if int(self.OS_shots) != 0:
+                    print("QM didn't support SingleShot meas in the time-monitor !")
+                    # self.EXP.exp_name.append("OneShot")
 
 
+                for EXP in self.EXP.exp_list:
+                
+                    EXP.shot_num = self.avg_n
+                    EXP.initializer = initializer(self.init_macro["time"]*1e9,mode=self.init_macro["mode"])
+                    EXP.ro_elements = self.ro_elements
+                    EXP.xy_elements = self.xy_elements
+                    if self.time_sampling_func == "arange":
+                        EXP.time_resolution = self.time_ptsORstep*1e6
+                    else:
+                        raise ValueError(f"Sorry, The given sampling function = {self.time_sampling_func} is temporarily unsupported !")
+  
+                self.dataset = self.EXP.run(self.histo_counts)
+                for name in self.EXP.exp_name:
+                    save_path = os.path.join(self.save_data_folder,f"{name}Rep_{self.JOBID}.nc")
+                    dataset:Dataset = self.dataset[name]
+                    dataset.to_netcdf(save_path)
 
     def start_analysis(self,analysis_need:dict=None,*args):
         """ Wait calling from Conductor.Executor """
