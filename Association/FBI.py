@@ -5,7 +5,6 @@ from Association.Soul import ExpParas
 import Association
 from qblox_drive_AS.support.UserFriend import *
 
-
 def owned_attribute(obj, attr):
     return hasattr(obj, attr) and attr in obj.__dict__
 
@@ -39,9 +38,9 @@ class Canvasser():
         self.exp_type = exp_type.upper()
         # Get all attributes of the class excluding built-in ones
         if generate_2_this_folder == "":
-            self.file_path=os.path.join(os.path.expanduser("~"),f"{self.exp_type}_{SurveyUniqueName}.toml")
+            self.file_path=os.path.join(os.path.expanduser("~"),f"{self.exp_type}_{SurveyUniqueName}.{survey_file_fmt}")
         else:
-            self.file_path=os.path.join(generate_2_this_folder,f"{self.exp_type}_{SurveyUniqueName}.toml")
+            self.file_path=os.path.join(generate_2_this_folder,f"{self.exp_type}_{SurveyUniqueName}.{survey_file_fmt}")
 
         if script_path == "":
             script_path = None
@@ -150,8 +149,8 @@ class Canvasser():
 
         # make parameters dependence  
         joint_qbs = [name for name in assigned_paras if name not in dir(self.brain)] # ExpParas.name not in self.brain.attributes
-        slightly_print("==================")
-        print("measure qs: ",joint_qbs)
+        if len(joint_qbs) != 0:
+            print("measure qs: ",joint_qbs)
         self.assigned_paras = {}
         if len(joint_qbs) > 0:
             for item in assigned_paras[joint_qbs[0]]:
@@ -162,11 +161,7 @@ class Canvasser():
                 del assigned_paras[q]
             
         self.assigned_paras.update(assigned_paras) # completed
-        # check paras:
-        print("Para Check:")
-        for item in self.assigned_paras:
-            print(item,": ",self.assigned_paras[item])
-        slightly_print("==================")
+        
     
     def config_decoder(self,machine_type:str,config_path:str)->list:
         """ Remember: config_path is a folder ! """

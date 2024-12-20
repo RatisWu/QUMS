@@ -34,12 +34,11 @@ class Executor():
     def __ExpResultsAnalyzes__(self, ana_need_items:dict=None, *args, **kwargs):
         self.Exp.start_analysis(analysis_need = ana_need_items)
 
-    def MeasWorkFlow(self,bypass:bool=False):
+    def MeasWorkFlow(self,beta_test:bool=False):
         ''' Use arg `bypass` skip connecting to machine '''
         self.__ExpParasCollects__()
-
-        if not bypass:
-            self.__ExpExecutes__()
+        self.Exp.BetaMode = beta_test
+        self.__ExpExecutes__()  
 
 
 

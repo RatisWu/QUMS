@@ -1,16 +1,49 @@
-from numpy import ndarray
-from types import FunctionType
 from abc import ABC, abstractmethod
-import inspect
+
 
 # Exp framework
 class ExpSpirit(ABC):
     def __init__(self):
-        self.save_data_folder:int = ""
-        self.machine_type:str = ""
-        self.connections:list = []
-        self.JOBID:str = ""
+        self.__save_data_folder:int = ""
+        self.__machine_type:str = ""
+        self.__connections:list = []
+        self.__JOBID:str = ""
+        self.__BetaMode:bool = False
         self.provide_ExpSurveyInfo()
+    @property
+    def BetaMode(self):
+        return self.__BetaMode
+    @BetaMode.setter
+    def BetaMode(self, beta:bool):
+        self.__BetaMode = beta
+    
+    @property
+    def save_data_folder(self):
+        return self.__save_data_folder
+    @save_data_folder.setter
+    def save_data_folder(self, path:str):
+        self.__save_data_folder = path
+    
+    @property
+    def machine_type(self):
+        return self.__machine_type
+    @machine_type.setter
+    def machine_type(self, type:str):
+        self.__machine_type = type
+    
+    @property
+    def connections(self):
+        return self.__connections
+    @connections.setter
+    def connections(self, items:list):
+        self.__connections = items
+    
+    @property
+    def JOBID(self):
+        return self.__JOBID
+    @JOBID.setter
+    def JOBID(self, ID:str):
+        self.__JOBID = ID
 
     @abstractmethod
     def get_ExpLabel(self,*args)->str:
@@ -37,10 +70,19 @@ class ExpSpirit(ABC):
     def start_analysis(self,*args):
         """ Have raw data, analyze it here. """
         pass
+    
+    
+    def show_assigned_paras(self):
+        # Filter attributes that don't start with '__' and some properties
+        assigned_paras = [
+            (attr, getattr(self, attr)) for attr in dir(self) if not attr.startswith("__") 
+            and not attr.startswith("_") and not callable(getattr(self, attr)) 
+            and not isinstance(getattr(type(self), attr, None), property)
+            and not isinstance(getattr(self, attr), ExpParas)
+        ]
+        for item in assigned_paras:
+            print(f"{item[0]}: {item[1]}, type: {type(item[1])}\n")
 
-    def workflow(self,hardware_info:dict):
-        """ Good looking """
-        pass
 
 # Exp parameter type
 class ExpParas():
@@ -81,24 +123,6 @@ class ExpParas():
         if int(self.uniqueness)==4 and self.pre_fill is None:
             raise ValueError(f"Your Exp para '{self.name}' uniqueness == 4 but pre_fill is None, check it! The pre_fill must not be None when the uniqueness is 4.")
 
-        
-    
-    def __giveProgramReadable__(self):
-        if self.uniqueness >= 2:
-            if "freq" in self.name.lower():
-                self.readable = "freq_samples"
-            elif "power" in self.name.lower():
-                self.readable = "power_samples"
-            elif "bias" in self.name.lower():
-                self.readable = "bias_samples"
-            elif "z_amp" in self.name.lower():
-                self.readable = "z_samples"
-            elif "time" in self.name.lower():
-                self.readable = "time_samples"
-            elif "sots" in self.name.lower():
-                self.readable = "shots"
-            else:
-                self.readable = "dummy_samples"
 
 
 

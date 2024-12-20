@@ -1,7 +1,7 @@
 import os, sys, tomli, random, shutil, json
 from datetime import datetime
 from Association.Roads import machine_IP_table, queue_folder, user_dep_config_folder, data_folder
-from Association.ExclusiveNames import SurveyUniqueName, ConfigUniqueName, IdentityUniqueName
+from Association.ExclusiveNames import SurveyUniqueName, ConfigUniqueName, IdentityUniqueName, data_file_fmt, survey_file_fmt
 from qblox_drive_AS.support.UserFriend import *
 
 
@@ -49,7 +49,7 @@ class Queuer():
     
     def __TouchConfigNPara__(self)->dict:
         Config = [os.path.join(user_dep_config_folder,name) for name in os.listdir(user_dep_config_folder) if (os.path.isdir(os.path.join(user_dep_config_folder,name)) and ConfigUniqueName.lower() in name.lower())]
-        Survey = [os.path.join(user_dep_config_folder,name) for name in os.listdir(user_dep_config_folder) if (os.path.isfile(os.path.join(user_dep_config_folder,name)) and SurveyUniqueName in name and name.split(".")[-1] == 'toml')][0]
+        Survey = [os.path.join(user_dep_config_folder,name) for name in os.listdir(user_dep_config_folder) if (os.path.isfile(os.path.join(user_dep_config_folder,name)) and SurveyUniqueName in name and name.split(".")[-1] == survey_file_fmt)][0]
         Script = [os.path.join(user_dep_config_folder,name) for name in os.listdir(user_dep_config_folder) if (os.path.isfile(os.path.join(user_dep_config_folder,name)) and name.split(".")[-1] == 'py')]
         self.exp_type = os.path.split(Survey)[-1].split("_")[0].upper()
         if self.exp_type == "S0":
@@ -106,7 +106,7 @@ class Queuer():
                     case "Config_path":
                         JOBID_labeled_name = f"{os.path.split(self.Requirements['Config_path'])[-1]}{self.__JOBIDconnector__()}{self.JOBID}"
                     case "Survey_path":
-                        JOBID_labeled_name = f"{os.path.split(self.Requirements['Survey_path'])[-1].split('.')[0]}{self.__JOBIDconnector__()}{self.JOBID}.toml"
+                        JOBID_labeled_name = f"{os.path.split(self.Requirements['Survey_path'])[-1].split('.')[0]}{self.__JOBIDconnector__()}{self.JOBID}.{survey_file_fmt}"
                 if requirement == 'Script_path':
                     if self.Requirements[requirement] is not None:
                         shutil.move(self.Requirements[requirement],self.queue)
@@ -156,7 +156,7 @@ class Queuer():
                 if self.machine_system.lower() == 'qm':
                     item_to_analyze["Configs"] = item_path
     
-            if os.path.split(item_path)[-1].split(".")[-1] == "nc":
+            if os.path.split(item_path)[-1].split(".")[-1] in data_file_fmt:
                 # may have a lot, but no worries
                 item_to_analyze["Data"].append(item_path)
         
@@ -208,7 +208,7 @@ class Queuer():
                 case "Config_path":
                     JOBID_erased_name = self.__JOBIDeraser__(os.path.split(self.program_requirements['Config_path'])[-1])
                 case "Survey_path":
-                    JOBID_erased_name = f"{self.__JOBIDeraser__(os.path.split(self.program_requirements['Survey_path'])[-1].split('.')[0])}.toml"
+                    JOBID_erased_name = f"{self.__JOBIDeraser__(os.path.split(self.program_requirements['Survey_path'])[-1].split('.')[0])}.{survey_file_fmt}"
                 
             # send back to user config folder
             if requirement == "Script_path":
