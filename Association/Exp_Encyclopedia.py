@@ -689,7 +689,6 @@ class PowerRabi(ExpSpirit):
         self.freq_range = ExpParas("freq_range","list",3,message="Values to span. rule: [start, end, resolution] like: [-3e6, 3e6, 1e6]",pre_fill=[])
 
         self.pi_amp = ExpParas("pi_amp","list",3,message="amp values span. rule: [start, end] like: [-0.6, 0.6].")
-        self.pi_duration = ExpParas("pi_duration","float",3,message="Only for Qblox, how long is your pi-pulse ?",pre_fill=40e-9)
         # self.OSmode = ExpParas("OSmode","int",1,message="booling value set 0 for False or 1 for True, Use one-shot or not ?")
         self.avg_n = ExpParas("avg_n","int",1,pre_fill=200)
         self.amp_sampling_func = ExpParas("amp_sampling_func","func",1,message="sampling function options: 'linspace', 'arange'.",pre_fill='linspace')
@@ -715,7 +714,7 @@ class PowerRabi(ExpSpirit):
                     from qblox_drive_AS.support.ExpFrames import PowerRabiOsci
                     self.target_qs = list(self.pi_amp.keys())
                     self.EXP = PowerRabiOsci(QD_path=self.connections[0],data_folder=self.save_data_folder,JOBID=self.JOBID)
-                    self.EXP.SetParameters(self.pi_amp, self.pi_duration, self.amp_sampling_func, self.pi_amp_ptsORstep,self.avg_n,execution=True)
+                    self.EXP.SetParameters(self.pi_amp, self.amp_sampling_func, self.pi_amp_ptsORstep,self.avg_n,execution=True)
                     self.EXP.WorkFlow()
                     eyeson_print("Raw data located:")
                     slightly_print(self.EXP.RawDataPath)
@@ -783,7 +782,6 @@ class TimeRabi(ExpSpirit):
         self.xy_elements = ExpParas("xy_elements","list",4,message="Fill in who to drive like: ['q0_xy',...]",pre_fill=[])
         self.freq_range = ExpParas("freq_range","list",3,message="Values to span. rule: [start, end, resolution] like: [-3e6, 3e6, 1e6]",pre_fill=[])
 
-        self.pi_amp = ExpParas("pi_amp","float",3,message="Only for Qblox, amp for your pi-pulse.",pre_fill=0.2)
         self.pi_duration = ExpParas("pi_duration","list",3,message="pi-len values span. rule: [start, end] like: [0, 200e-9]. ** QM starts from 16e-9 **")
         # self.OSmode = ExpParas("OSmode","int",1,message="booling value set 0 for False or 1 for True, Use one-shot or not ?")
         self.avg_n = ExpParas("avg_n","int",1,pre_fill=200)
@@ -808,9 +806,9 @@ class TimeRabi(ExpSpirit):
             match self.machine_type.lower():
                 case 'qblox':
                     from qblox_drive_AS.support.ExpFrames import TimeRabiOsci
-                    self.target_qs = list(self.pi_amp.keys())
+                    self.target_qs = list(self.pi_duration.keys())
                     self.EXP = TimeRabiOsci(QD_path=self.connections[0],data_folder=self.save_data_folder,JOBID=self.JOBID)
-                    self.EXP.SetParameters( self.pi_duration, self.pi_amp,self.duration_sampling_func, self.pi_dura_ptsORstep,self.avg_n,execution=True)
+                    self.EXP.SetParameters( self.pi_duration,self.duration_sampling_func, self.pi_dura_ptsORstep,self.avg_n,execution=True)
                     self.EXP.WorkFlow()
                     eyeson_print("Raw data located:")
                     slightly_print(self.EXP.RawDataPath)
