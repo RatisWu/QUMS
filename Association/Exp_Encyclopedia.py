@@ -686,7 +686,7 @@ class PowerRabi(ExpSpirit):
         self.init_macro = ExpParas("init_macro","dict",4,message="Make sure it's in the quotes (\"\"),initializer operation: initializer(time=400e-6,mode='wait')",pre_fill={"time":100e-6,"mode":'wait'})
         self.ro_elements = ExpParas("ro_elements","list",4,message="Fill in who to read like: ['q0_ro',...]",pre_fill=[])
         self.xy_elements = ExpParas("xy_elements","list",4,message="Fill in who to drive like: ['q0_xy',...]",pre_fill=[])
-        self.freq_range = ExpParas("freq_range","list",3,message="Values to span. rule: [start, end, resolution] like: [-3e6, 3e6, 1e6]",pre_fill=[])
+        self.freq_range = ExpParas("freq_range","list",4,message="Values to span. rule: [start, end, resolution] like: [-3e6, 3e6, 1e6]",pre_fill=[])
 
         self.pi_amp = ExpParas("pi_amp","list",3,message="amp values span. rule: [start, end] like: [-0.6, 0.6].")
         # self.OSmode = ExpParas("OSmode","int",1,message="booling value set 0 for False or 1 for True, Use one-shot or not ?")
@@ -780,7 +780,7 @@ class TimeRabi(ExpSpirit):
         self.init_macro = ExpParas("init_macro","dict",4,message="Make sure it's in the quotes (\"\"),initializer operation: initializer(time=400e-6,mode='wait')",pre_fill={"time":100e-6,"mode":'wait'})
         self.ro_elements = ExpParas("ro_elements","list",4,message="Fill in who to read like: ['q0_ro',...]",pre_fill=[])
         self.xy_elements = ExpParas("xy_elements","list",4,message="Fill in who to drive like: ['q0_xy',...]",pre_fill=[])
-        self.freq_range = ExpParas("freq_range","list",3,message="Values to span. rule: [start, end, resolution] like: [-3e6, 3e6, 1e6]",pre_fill=[])
+        self.freq_range = ExpParas("freq_range","list",4,message="Values to span. rule: [start, end, resolution] like: [-3e6, 3e6, 1e6]",pre_fill=[])
 
         self.pi_duration = ExpParas("pi_duration","list",3,message="pi-len values span. rule: [start, end] like: [0, 200e-9]. ** QM starts from 16e-9 **")
         # self.OSmode = ExpParas("OSmode","int",1,message="booling value set 0 for False or 1 for True, Use one-shot or not ?")
